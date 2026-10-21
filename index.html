@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#123f43">
+    <meta name="theme-color" content="#17324f">
     <title>Ubatuba Conecta</title>
+    <link rel="icon" type="image/png" href="Imagens/logo_ubatuba_conecta_transparente.png">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
 
         :root {
             color-scheme: light;
-            --ink: #173b3a;
-            --muted: #657a75;
-            --paper: #f4f5ef;
-            --surface: #fffefa;
-            --line: #dce4dc;
-            --green: #176b58;
-            --green-dark: #123f43;
-            --lime: #d7ed9d;
+            --ink: #17324f;
+            --muted: #64798b;
+            --paper: #f3f7fa;
+            --surface: #ffffff;
+            --line: #d8e3eb;
+            --green: #087f8c;
+            --green-dark: #17324f;
+            --lime: #6ac58b;
             --coral: #ee765c;
-            --blue: #dcecf0;
-            --shadow: 0 12px 32px #173b3a12;
+            --blue: #e2f2f5;
+            --shadow: 0 12px 32px #17324f12;
         }
 
         * { box-sizing: border-box; }
@@ -40,7 +41,7 @@
             position: sticky;
             top: 0;
             z-index: 5;
-            background: #fffefaed;
+            background: #ffffffed;
             border-bottom: 1px solid var(--line);
             backdrop-filter: blur(14px);
         }
@@ -68,14 +69,11 @@
         }
 
         .brand-mark {
-            width: 38px;
-            height: 38px;
-            display: grid;
-            place-items: center;
-            border-radius: 12px;
-            background: var(--green-dark);
-            color: var(--lime);
-            font-size: 19px;
+            width: 56px;
+            height: 56px;
+            display: block;
+            flex: 0 0 56px;
+            object-fit: contain;
         }
 
         .desktop-nav, .mobile-nav {
@@ -95,7 +93,7 @@
         }
 
         .nav-button[aria-current="page"] {
-            background: #e8f0e8;
+            background: #e2f2f5;
             color: var(--green-dark);
         }
 
@@ -159,12 +157,12 @@
         .welcome-copy p:last-of-type {
             max-width: 420px;
             margin-bottom: 20px;
-            color: #d8e8dd;
+            color: #dceef1;
         }
 
         .welcome-image {
             min-height: 230px;
-            background: #5c9c8b;
+            background: #35a8b4;
         }
 
         .welcome-image img {
@@ -175,17 +173,17 @@
             object-fit: cover;
         }
 
-        .app-footer { margin-top: 28px; background: var(--green-dark); color: #f3f7ef; }
+        .app-footer { margin-top: 28px; background: var(--green-dark); color: #f3f7fa; }
         .footer-inner { width: min(1100px, 100%); margin: auto; padding: 30px 28px 18px; }
         .footer-sections { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; }
         .footer-section h2 { margin: 0 0 8px; color: white; font-size: 19px; }
-        .footer-section > p { margin-bottom: 14px; color: #d8e8dd; font-size: 14px; }
+        .footer-section > p { margin-bottom: 14px; color: #dceef1; font-size: 14px; }
         .footer-section .eyebrow { margin-bottom: 8px; color: var(--lime); }
         .download-actions { display: flex; flex-wrap: wrap; gap: 8px; }
         .footer-email { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; background: var(--lime); color: var(--green-dark); padding: 10px 14px; text-decoration: none; font-size: 14px; font-weight: 700; }
-        .footer-address { margin: 9px 0 0 !important; color: #d8e8dd; font-size: 13px !important; }
-        .footer-bottom { margin: 24px 0 0; padding-top: 14px; border-top: 1px solid #ffffff30; color: #d8e8dd; font-size: 12px; }
-        .source-line a { color: #245e4b; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+        .footer-address { margin: 9px 0 0 !important; color: #dceef1; font-size: 13px !important; }
+        .footer-bottom { margin: 24px 0 0; padding-top: 14px; border-top: 1px solid #ffffff30; color: #dceef1; font-size: 12px; }
+        .source-line a { color: #087f8c; text-decoration-thickness: 1px; text-underline-offset: 3px; }
         .weather-link { display: inline-flex; margin-top: 12px; text-decoration: none; }
         .store-link {
             min-height: 44px;
@@ -202,7 +200,7 @@
             font-weight: 700;
         }
         .store-link[aria-disabled="true"] { opacity: .56; cursor: not-allowed; }
-        .store-link.recommended { border-color: var(--green); background: #edf3e9; }
+        .store-link.recommended { border-color: var(--green); background: #e2f2f5; }
         .store-symbol { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: var(--green-dark); color: white; font-size: 13px; }
         .store-link small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; }
 
@@ -241,7 +239,7 @@
             color: var(--ink);
         }
 
-        .shortcut:hover, .city-card:hover { border-color: #9ab9a6; transform: translateY(-2px); }
+        .shortcut:hover, .city-card:hover { border-color: #8bc7cf; transform: translateY(-2px); }
 
         .shortcut-icon {
             width: 34px;
@@ -265,8 +263,8 @@
             align-items: center;
             padding: 6px 10px;
             border-radius: 999px;
-            background: #e7f2dc;
-            color: #326048;
+            background: #e0f2ec;
+            color: #1d6658;
             font-size: 12px;
             font-weight: 700;
             white-space: nowrap;
@@ -324,7 +322,7 @@
         #relatoCampo { display: none; }
         #resultado { overflow-wrap: anywhere; line-height: 1.6; }
         .preco-orcamento { font-size: 1.2rem; font-weight: 800; color: var(--green); }
-        .quote-review { margin-top: 20px; padding: 22px; border: 1px solid #c9d9cd; border-radius: 12px; background: linear-gradient(145deg, #fffefa, #f1f6ed); box-shadow: var(--shadow); }
+        .quote-review { margin-top: 20px; padding: 22px; border: 1px solid #c9dce2; border-radius: 12px; background: linear-gradient(145deg, #ffffff, #edf5f7); box-shadow: var(--shadow); }
         .quote-kicker { margin: 0 0 6px; color: var(--green); font-size: 12px; font-weight: 800; text-transform: uppercase; }
         .quote-review h3 { margin: 0 0 6px; font-size: 22px; }
         .quote-intro { margin: 0 0 18px; color: var(--muted); }
@@ -337,7 +335,7 @@
         .quote-price-box span { display: block; color: #d8e8dd; font-size: 13px; }
         .quote-price-box .preco-orcamento { margin: 4px 0 0; color: var(--lime); font-family: 'Manrope', sans-serif; font-size: 26px; }
         .quote-included, .quote-caution { margin-top: 14px; padding: 14px 16px; border-radius: 8px; }
-        .quote-included { background: #edf3e9; }
+        .quote-included { background: #e8f5f1; }
         .quote-caution { border-left: 3px solid var(--coral); background: #fff4ec; }
         .quote-included h4, .quote-caution h4 { margin: 0 0 6px; font-family: 'Manrope', sans-serif; font-size: 14px; }
         .quote-included p, .quote-caution p { margin: 0; color: #465f54; font-size: 13px; line-height: 1.55; }
@@ -379,7 +377,7 @@
         .panel { padding: 24px; margin-top: 24px; }
         .panel h2 { margin: 0 0 6px; font-size: 21px; }
         .panel > p { color: var(--muted); }
-        .selected-plan { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 16px 0; padding: 13px 15px; border-radius: 8px; background: #edf3e9; font-weight: 700; }
+        .selected-plan { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 16px 0; padding: 13px 15px; border-radius: 8px; background: #e2f2f5; font-weight: 700; }
         .payment-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
         .payment-option { min-height: 52px; display: flex; align-items: center; gap: 9px; margin: 0; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: white; }
         .payment-option input { width: 17px; min-height: 17px; margin: 0; accent-color: var(--green); }
@@ -403,7 +401,7 @@
         .listing-gallery:empty { display: none; }
         .listing-gallery .photo-preview { border-radius: 7px; }
         .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
-        .stat-item { min-width: 0; padding: 14px; border-radius: 8px; background: #f2f5ef; }
+        .stat-item { min-width: 0; padding: 14px; border-radius: 8px; background: #edf4f7; }
         .stat-item span, .stat-item strong { display: block; }
         .stat-item span { color: var(--muted); font-size: 12px; }
         .stat-item strong { margin-top: 6px; font-family: 'Manrope', sans-serif; font-size: 18px; overflow-wrap: anywhere; }
@@ -474,8 +472,7 @@
     <header class="app-header">
         <div class="topbar">
             <a class="brand" href="#inicio" aria-label="Ubatuba Conecta, início" data-view-link="inicio">
-                <span class="brand-mark" aria-hidden="true">U</span>
-                <span>Ubatuba Conecta</span>
+                <img class="brand-mark" src="Imagens/logo_ubatuba_conecta_transparente.png" alt="">
             </a>
             <nav class="desktop-nav" aria-label="Navegação principal">
                 <button class="nav-button" data-view-link="inicio" aria-current="page">Início</button>
