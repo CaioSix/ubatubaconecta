@@ -1,4 +1,3 @@
-export const WHATSAPP_RF_AR = '';
 export const INSTAGRAM_URL = 'https://www.instagram.com/ubatubaconecta/';
 export const CONTACT_EMAIL = 'ubatubaconecta2026@gmail.com';
 
@@ -349,7 +348,7 @@ export const STAY_LISTINGS = [
     image: 'https://ubatubaon.com.br/sites/default/files/styles/medium/public/Logo%20Zita%20Pedro.jpeg?itok=xQedp60J',
     fallbackImage: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=640&q=80',
     badge: 'Pé na areia · Norte',
-    highlights: ['Ambiente familiar', 'Próximo à Ilha das Couves', 'Ar-condicionado e Wi-Fi'],
+    highlights: ['Ambiente familiar', 'Próximo à Ilha das Couves', 'Estacionamento e Wi-Fi'],
     externalUrl: 'https://ubatubaon.com.br/hospedagem/pousada-zita-pedro',
   },
   {
@@ -375,25 +374,12 @@ export const STAY_LISTINGS = [
     image: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=640&q=80',
     fallbackImage: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=640&q=80',
     badge: 'Temporada · Sul',
-    highlights: ['Espaço gourmet com churrasqueira', 'Ambientes climatizados', 'A 300m da praia'],
+    highlights: ['Espaço gourmet com churrasqueira', 'Amplo jardim privativo', 'A 300m da praia'],
     externalUrl: '#empresas',
   },
 ];
 
 export const SERVICES_LISTINGS = [
-  {
-    id: 'srv-rf-ar-condicionado',
-    title: 'RF Ar Condicionado',
-    category: 'Climatização & Manutenção',
-    location: 'Atendimento em toda Ubatuba',
-    region: 'Centro',
-    isPartnerFeatured: true,
-    badge: 'Empresa Parceira Oficial',
-    description: 'Instalação, manutenção (recarga de gás), higienização e visita técnica em Ubatuba com orçamento transparente na hora.',
-    image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=640&q=80',
-    actionLabel: 'Simular orçamento online',
-    scrollTarget: 'rf-card',
-  },
   {
     id: 'srv-casa-do-marmitex',
     title: 'Casa do Marmitex',
@@ -570,40 +556,27 @@ export const BUSINESS_PLANS = {
     id: 'semanal',
     nome: 'Semanal',
     periodo: '7 dias',
-    avisoDias: 2,
+    avisoDias: 3,
     preco: 19.99,
     descricao: 'Para divulgação rápida por uma semana ou ações promocionais.',
     recommended: false,
   },
   mensal: {
     id: 'mensal',
-    nome: 'Mensal',
-    periodo: '1 mês',
-    avisoDias: 7,
+    nome: 'Mensal Recorrente',
+    periodo: '30 dias',
+    avisoDias: 3,
     preco: 49.99,
-    descricao: 'Presença contínua para clientes locais e turistas o mês inteiro.',
+    descricao: 'Assinatura recorrente via Mercado Pago com destaque contínuo o mês inteiro.',
     recommended: true,
   },
   anual: {
     id: 'anual',
-    nome: 'Anual',
-    periodo: '1 ano',
-    avisoDias: 7,
+    nome: 'Anual Recorrente',
+    periodo: '365 dias',
+    avisoDias: 3,
     preco: 399.99,
     descricao: 'Divulgação garantida durante o ano todo e alta temporada.',
     recommended: false,
   },
-};
-
-export const RF_PRICES = {
-  instalacao: {
-    '9000': 790,
-    '12000': 790,
-    '18000': 900,
-    '24000': 900,
-    '30000': 1200,
-  },
-  manutencao: 450,
-  higienizacao: 150,
-  visitaTecnica: 50,
 };

@@ -2631,3 +2631,353 @@ button:focus-visible {
     line-height: 1;
   }
 }
+
+
+/* ==========================================================================
+   Partner Portal (Clerk Auth + Mercado Pago Recorrência + Aviso de 3 Dias)
+   ========================================================================== */
+
+.partner-auth-pill {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--green);
+  border-radius: 999px;
+  background: #edf7f9;
+  color: var(--green-dark);
+  padding: 6px 13px;
+  font-size: 13px;
+  font-weight: 800;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.partner-auth-pill:hover {
+  background: var(--blue);
+}
+
+.partner-auth-pill.has-warning {
+  border-color: #d97706;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.partner-auth-pill-text {
+  max-width: 115px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partner-exp-badge {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #d97706;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.global-expiration-bar {
+  background: linear-gradient(90deg, #b45309 0%, #d97706 100%);
+  color: white;
+  padding: 10px 20px;
+}
+
+.global-expiration-inner {
+  width: min(1160px, 100%);
+  margin: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.partner-expiration-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 2px solid #f59e0b;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.partner-expiration-banner.is-expired {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.partner-expiration-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #d97706;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.partner-expiration-banner.is-expired .partner-expiration-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.partner-expiration-copy {
+  flex: 1;
+  min-width: 240px;
+}
+
+.partner-expiration-copy strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.partner-expiration-copy p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.partner-auth-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.partner-auth-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.partner-auth-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--blue);
+  color: var(--green-dark);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.partner-auth-info strong {
+  display: block;
+  font-size: 15px;
+}
+
+.partner-auth-sub {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sub-status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.sub-status-pill.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sub-status-pill.status-expired {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.partner-auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sim-buttons-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.plan-card.selected-card {
+  outline: 2px solid var(--green-dark);
+  background: #f5fbfc;
+}
+
+.mp-checkout-panel {
+  border: 2px solid #009ee3;
+  background: #f0f9ff;
+}
+
+.mp-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #009ee3;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.mp-checkout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.partner-form-panel.is-locked {
+  border: 1px dashed #94a3b8;
+  background: #f8fafc;
+}
+
+.tag-unlocked {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tag-locked {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.partner-locked-overlay-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+.partner-locked-overlay-banner div {
+  flex: 1;
+  min-width: 220px;
+}
+
+.partner-locked-overlay-banner strong {
+  display: block;
+  font-size: 14px;
+}
+
+.partner-locked-overlay-banner p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.clean-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.clean-fieldset:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.upload-trigger-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+}
+
+.partner-photo-item {
+  position: relative;
+}
+
+.photo-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: #dc2626d9;
+  color: white;
+  display: grid;
+  place-items: center;
+}
+
+.partner-alert-error {
+  margin-top: 14px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.partner-card-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.partner-card-thumbs img {
+  width: 100%;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.partner-region-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.partner-owner-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.clerk-dev-modal {
+  max-width: 460px;
+}

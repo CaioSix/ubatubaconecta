@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import Header from './components/Header';
 import HeroPlanner from './components/HeroPlanner';
 import CityStatusSection from './components/CityStatusSection';
 import BeachesSection from './components/BeachesSection';
-import RfServiceCard from './components/RfServiceCard';
 import ExploreDirectorySection from './components/ExploreDirectorySection';
 import CityView from './components/CityView';
 import JobsView from './components/JobsView';
@@ -12,6 +12,8 @@ import ItineraryModal from './components/ItineraryModal';
 import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
 import { fetchUbatubaWeatherAndMarine } from './services/weatherApi';
+import { fetchPublicPartners } from './services/partnerApi';
+import { usePartnerAuth } from './context/AuthContext';
 
 const ITINERARY_STORAGE_KEY = 'ubatuba-conecta-roteiro-v1';
 
@@ -22,6 +24,10 @@ export default function App() {
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState('');
+
+  const [publicPartners, setPublicPartners] = useState([]);
+  const { isSignedIn, partnerSession } = usePartnerAuth();
+  const sub = partnerSession?.subscription;
 
   const [itineraryItems, setItineraryItems] = useState(() => {
     try {
@@ -46,9 +52,19 @@ export default function App() {
     }
   }, []);
 
+  const loadPublicPartners = useCallback(async () => {
+    try {
+      const list = await fetchPublicPartners();
+      setPublicPartners(Array.isArray(list) ? list : []);
+    } catch {
+      setPublicPartners([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadWeather();
-  }, [loadWeather]);
+    loadPublicPartners();
+  }, [loadWeather, loadPublicPartners]);
 
   useEffect(() => {
     try {
@@ -117,6 +133,26 @@ export default function App() {
         onOpenItinerary={() => setItineraryModalOpen(true)}
       />
 
+      {/* Alerta Global de Vencimento em <= 3 Dias vinculado ao Login do Parceiro */}
+      {isSignedIn && sub && (sub.expiringSoon || sub.expired) && activeView !== 'empresas' && (
+        <div className="global-expiration-bar" role="alert">
+          <div className="global-expiration-inner">
+            <AlertTriangle size={18} />
+            <span>
+              {sub.alertMessage ||
+                `Atenção parceiro: sua assinatura vence em ${sub.daysRemaining} dia(s).`}
+            </span>
+            <button
+              type="button"
+              className="button-secondary button-sm"
+              onClick={() => handleNavigate('empresas')}
+            >
+              Ver assinatura / Renovar
+            </button>
+          </div>
+        </div>
+      )}
+
       <main>
         {activeView === 'inicio' && (
           <section id="view-inicio" className="app-view active" aria-labelledby="inicio-titulo">
@@ -130,7 +166,7 @@ export default function App() {
             <div className="section-heading">
               <div>
                 <h2>O que você precisa hoje?</h2>
-                <p>Acesso rápido aos serviços, praias, clima ao vivo e informações locais.</p>
+                <p>Acesso rápido às praias, clima ao vivo, parceiros locais e informações úteis.</p>
               </div>
             </div>
 
@@ -138,12 +174,12 @@ export default function App() {
               <button
                 type="button"
                 className="shortcut"
-                onClick={() => handleScrollToTarget('rf-card')}
+                onClick={() => handleNavigate('empresas')}
               >
                 <span className="shortcut-icon" aria-hidden="true">
-                  RF
+                  ★
                 </span>
-                <strong>Orçamento de ar-condicionado</strong>
+                <strong>Seja Parceiro (Divulgar Negócio)</strong>
               </button>
               <button
                 type="button"
@@ -193,7 +229,7 @@ export default function App() {
                 <span className="shortcut-icon" aria-hidden="true">
                   ＋
                 </span>
-                <strong>Empresas Locais</strong>
+                <strong>Área do Parceiro</strong>
               </button>
             </div>
 
@@ -206,9 +242,6 @@ export default function App() {
               onNavigate={handleNavigate}
             />
 
-            {/* RF Ar Condicionado — Empresa Parceira */}
-            <RfServiceCard />
-
             {/* Guia de Praias em Destaque */}
             <BeachesSection
               isCompact={true}
@@ -218,12 +251,12 @@ export default function App() {
               weather={weather}
             />
 
-            {/* Onde Ficar, O que Fazer e Artigos / Guia Local */}
+            {/* Onde Ficar, O que Fazer, Parceiros e Artigos / Guia Local */}
             <ExploreDirectorySection
               itineraryItems={itineraryItems}
               onToggleItinerary={handleToggleItinerary}
               onNavigate={handleNavigate}
-              onScrollToTarget={handleScrollToTarget}
+              publicPartners={publicPartners}
             />
           </section>
         )}
@@ -255,21 +288,26 @@ export default function App() {
             <p className="eyebrow eyebrow-accent">Guia Turístico e Comercial</p>
             <h1 className="page-title">Onde Ficar, O que Fazer e Dicas de Ubatuba</h1>
             <p className="page-intro">
-              Encontre hospedagens, passeios, restaurantes, climatização e informações essenciais
-              sobre Zona Azul, Taxa de Preservação Ambiental (TPA) e pedágio Free Flow.
+              Encontre empresas parceiras, hospedagens, passeios, restaurantes e informações
+              essenciais sobre Zona Azul, Taxa de Preservação Ambiental (TPA) e pedágio Free Flow.
             </p>
             <ExploreDirectorySection
               itineraryItems={itineraryItems}
               onToggleItinerary={handleToggleItinerary}
               onNavigate={handleNavigate}
-              onScrollToTarget={handleScrollToTarget}
+              publicPartners={publicPartners}
             />
           </section>
         )}
 
         {activeView === 'vagas' && <JobsView />}
 
-        {activeView === 'empresas' && <BusinessesView />}
+        {activeView === 'empresas' && (
+          <BusinessesView
+            publicPartners={publicPartners}
+            onPartnersUpdated={loadPublicPartners}
+          />
+        )}
       </main>
 
       <ItineraryModal

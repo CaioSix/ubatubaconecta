@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
-import { Check, MapPin, BookOpen, X, ArrowRight, Building2 } from 'lucide-react';
+import { Check, MapPin, BookOpen, X, ArrowRight, Building2, MessageCircle, Sparkles } from 'lucide-react';
 import { STAY_LISTINGS, SERVICES_LISTINGS, LOCAL_ARTICLES } from '../data/ubatubaData';
+import { recordPartnerWhatsappClick } from '../services/partnerApi';
 
 const STAY_TYPES = ['Todos', 'Hotel', 'Pousada', 'Chalé', 'Casa'];
 const SERVICE_CATEGORIES = [
   'Todos',
-  'Climatização & Manutenção',
   'Restaurantes',
   'Água e Gás (úteis)',
   'Agências de Turismo',
 ];
 
+function normalizarWhatsapp(valor) {
+  let numero = (valor || '').replace(/\D/g, '');
+  if (numero.length === 10 || numero.length === 11) numero = `55${numero}`;
+  return /^55\d{10,11}$/.test(numero) ? numero : '';
+}
+
 export default function ExploreDirectorySection({
   itineraryItems = [],
   onToggleItinerary,
   onNavigate,
-  onScrollToTarget,
+  publicPartners = [],
 }) {
   const [staySearch, setStaySearch] = useState('');
   const [stayCategory, setStayCategory] = useState('Todos');
@@ -49,8 +55,98 @@ export default function ExploreDirectorySection({
     return itineraryItems.some((i) => i.id === id);
   }
 
+  function handlePartnerWhatsApp(partner) {
+    const num = normalizarWhatsapp(partner.telefone);
+    if (!num) return;
+    recordPartnerWhatsappClick(partner.id);
+    const msg = encodeURIComponent(
+      `Olá ${partner.responsavelNome || partner.empresaNome}! Vi sua empresa no Ubatuba Conecta e gostaria de mais informações.`
+    );
+    window.open(`https://wa.me/${num}?text=${msg}`, '_blank', 'noopener,noreferrer');
+  }
+
   return (
     <div className="explore-directory-wrapper">
+      {/* Seção de Parceiros Oficiais Cadastrados pelos Usuários */}
+      {publicPartners.length > 0 && (
+        <section className="directory-block" aria-labelledby="partners-showcase-heading">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow eyebrow-accent">Parceiros Oficiais Ubatuba Conecta</p>
+              <h2 id="partners-showcase-heading">Empresas Parceiras em Destaque</h2>
+              <p>Negócios locais verificados com atendimento direto pelo WhatsApp.</p>
+            </div>
+            <button
+              type="button"
+              className="button-primary button-sm"
+              onClick={() => onNavigate('empresas')}
+            >
+              <Sparkles size={15} /> Seja Parceiro
+            </button>
+          </div>
+
+          <div className="listing-cards-grid">
+            {publicPartners.map((partner) => {
+              const coverImg =
+                partner.imagens?.[0] ||
+                partner.logoUrl ||
+                '/Imagens/logo_ubatuba_conecta_transparente.png';
+              return (
+                <article key={partner.id} className="uo-card uo-card-featured">
+                  <div className="uo-card-media">
+                    <img
+                      src={coverImg}
+                      alt={partner.empresaNome}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = '/Imagens/logo_ubatuba_conecta_transparente.png';
+                      }}
+                    />
+                    <span className="uo-card-badge">Parceiro Verificado</span>
+                  </div>
+                  <div className="uo-card-body">
+                    <div className="uo-card-topline">
+                      <span className="status-tag">{partner.ramo || 'Comércio & Serviços'}</span>
+                      <span className="partner-region-tag">{partner.regiao || 'Ubatuba'}</span>
+                    </div>
+                    <h3>{partner.empresaNome}</h3>
+                    {partner.endereco && (
+                      <p className="uo-card-location">
+                        <MapPin size={14} /> {partner.endereco}
+                      </p>
+                    )}
+                    {partner.descricao && <p className="uo-card-desc">{partner.descricao}</p>}
+                    {partner.imagens?.length > 1 && (
+                      <div className="partner-card-thumbs">
+                        {partner.imagens.slice(0, 4).map((imgUrl, idx) => (
+                          <img
+                            key={`${partner.id}-img-${idx}`}
+                            src={imgUrl}
+                            alt={`${partner.empresaNome} foto ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="uo-card-footer">
+                      <small className="partner-owner-label">
+                        Resp.: {partner.responsavelNome}
+                      </small>
+                      <button
+                        type="button"
+                        className="button-primary button-sm"
+                        onClick={() => handlePartnerWhatsApp(partner)}
+                      >
+                        <MessageCircle size={14} /> WhatsApp
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Seção 1: Onde Ficar em Ubatuba */}
       <section className="directory-block" aria-labelledby="stay-heading">
         <div className="section-heading">
@@ -179,8 +275,15 @@ export default function ExploreDirectorySection({
           <div>
             <p className="eyebrow eyebrow-accent">Passeios, Gastronomia e Utilidades</p>
             <h2 id="services-heading">O que fazer e Serviços em Ubatuba</h2>
-            <p>Empresas parceiras, passeios de barco, restaurantes e serviços essenciais.</p>
+            <p>Passeios de barco, restaurantes e serviços essenciais para sua estadia.</p>
           </div>
+          <button
+            type="button"
+            className="button-quiet button-sm"
+            onClick={() => onNavigate('empresas')}
+          >
+            Seja Parceiro
+          </button>
         </div>
 
         <div className="directory-filters">
@@ -248,30 +351,20 @@ export default function ExploreDirectorySection({
                   </p>
                   <p className="uo-card-desc">{srv.description}</p>
                   <div className="uo-card-footer">
-                    {srv.scrollTarget ? (
-                      <button
-                        type="button"
-                        className="button-primary button-sm"
-                        onClick={() => onScrollToTarget(srv.scrollTarget)}
-                      >
-                        {srv.actionLabel}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="button-secondary button-sm"
-                        onClick={() =>
-                          onToggleItinerary({
-                            id: srv.id,
-                            title: srv.title,
-                            category: srv.category,
-                            location: srv.location,
-                          })
-                        }
-                      >
-                        {added ? 'Salvo no Roteiro' : 'Adicionar ao Roteiro'}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="button-secondary button-sm"
+                      onClick={() =>
+                        onToggleItinerary({
+                          id: srv.id,
+                          title: srv.title,
+                          category: srv.category,
+                          location: srv.location,
+                        })
+                      }
+                    >
+                      {added ? 'Salvo no Roteiro' : 'Adicionar ao Roteiro'}
+                    </button>
                   </div>
                 </div>
               </article>
@@ -319,14 +412,14 @@ export default function ExploreDirectorySection({
         </div>
       </section>
 
-      {/* Chamada para Anunciantes inspirada no UbatubaOn + Ubatuba Conecta */}
+      {/* Chamada para Novos Parceiros */}
       <section className="business-cta-banner" aria-label="Divulgue sua empresa em Ubatuba">
         <div>
-          <p className="eyebrow">Vitrine Comercial de Ubatuba</p>
-          <h2>Sua empresa atende turistas ou moradores de Ubatuba?</h2>
+          <p className="eyebrow">Portal de Parceiros · Ubatuba Conecta</p>
+          <h2>Tem um negócio em Ubatuba? Torne-se parceiro!</h2>
           <p>
-            Divulgue seu negócio no <strong>Ubatuba Conecta</strong> e receba clientes diretamente
-            pelo WhatsApp com planos a partir de R$ 19,99.
+            Faça login, ative sua assinatura recorrente via <strong>Mercado Pago</strong> e publique
+            o nome da sua empresa, telefone e fotos para milhares de visitantes e moradores.
           </p>
         </div>
         <div className="button-row">
@@ -335,7 +428,7 @@ export default function ExploreDirectorySection({
             className="button-secondary"
             onClick={() => onNavigate('empresas')}
           >
-            <Building2 size={16} /> Cadastrar estabelecimento
+            <Building2 size={16} /> Tornar-me Parceiro Agora
           </button>
           <button
             type="button"

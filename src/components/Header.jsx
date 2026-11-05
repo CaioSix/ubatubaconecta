@@ -1,14 +1,37 @@
 import React from 'react';
-import { Sun, CloudSun, CloudRain, Compass, MapPin, Briefcase, Building2, Waves, Home } from 'lucide-react';
+import {
+  Sun,
+  CloudSun,
+  Compass,
+  MapPin,
+  Briefcase,
+  Building2,
+  Waves,
+  Home,
+  UserCheck,
+  LogIn,
+  AlertTriangle,
+} from 'lucide-react';
+import { usePartnerAuth } from '../context/AuthContext';
 
-export default function Header({ activeView, onNavigate, weather, itineraryCount, onOpenItinerary }) {
+export default function Header({
+  activeView,
+  onNavigate,
+  weather,
+  itineraryCount,
+  onOpenItinerary,
+}) {
+  const { isSignedIn, user, openLoginModal, partnerSession } = usePartnerAuth();
+  const sub = partnerSession?.subscription;
+  const hasExpirationAlert = Boolean(sub?.expiringSoon || sub?.expired);
+
   const navItems = [
     { id: 'inicio', label: 'Início', icon: Home },
     { id: 'praias', label: 'Praias', icon: Waves },
     { id: 'cidade', label: 'Ubatuba & Clima', icon: CloudSun },
     { id: 'explorar', label: 'Onde Ficar & Fazer', icon: Compass },
     { id: 'vagas', label: 'Vagas', icon: Briefcase },
-    { id: 'empresas', label: 'Empresas', icon: Building2 },
+    { id: 'empresas', label: 'Seja Parceiro', icon: Building2 },
   ];
 
   return (
@@ -30,7 +53,7 @@ export default function Header({ activeView, onNavigate, weather, itineraryCount
           />
           <div className="brand-text">
             <strong>Ubatuba Conecta</strong>
-            <span>Guia, Clima & Serviços Locais</span>
+            <span>Guia, Clima & Parceiros Locais</span>
           </div>
         </a>
 
@@ -80,6 +103,37 @@ export default function Header({ activeView, onNavigate, weather, itineraryCount
             <span>Meu Roteiro</span>
             {itineraryCount > 0 && <strong className="itinerary-count">{itineraryCount}</strong>}
           </button>
+
+          {isSignedIn ? (
+            <button
+              type="button"
+              className={`itinerary-trigger partner-auth-pill ${
+                hasExpirationAlert ? 'partner-auth-pill-warning' : ''
+              }`}
+              onClick={() => onNavigate('empresas')}
+              title={
+                hasExpirationAlert
+                  ? sub.alertMessage
+                  : 'Acessar painel do parceiro e gerenciar publicação'
+              }
+            >
+              {hasExpirationAlert ? <AlertTriangle size={16} /> : <UserCheck size={16} />}
+              <span>{user?.name?.split(' ')[0] || 'Parceiro'}</span>
+              {sub?.expiringSoon && (
+                <strong className="itinerary-count">{sub.daysRemaining}d</strong>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="itinerary-trigger"
+              onClick={openLoginModal}
+              title="Entrar com Clerk para anunciar sua empresa"
+            >
+              <LogIn size={16} />
+              <span>Entrar</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

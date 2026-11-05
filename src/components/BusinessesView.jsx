@@ -1,5 +1,31 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CreditCard,
+  Upload,
+  Building2,
+  Phone,
+  UserCheck,
+  Sparkles,
+  ExternalLink,
+  Clock,
+  Lock,
+  Trash2,
+  MessageCircle,
+  MapPin,
+  RefreshCw,
+} from 'lucide-react';
 import { BUSINESS_PLANS } from '../data/ubatubaData';
+import { usePartnerAuth } from '../context/AuthContext';
+import {
+  createMercadoPagoCheckout,
+  confirmMercadoPagoPayment,
+  simulateSubscriptionExpiration,
+  uploadPartnerFiles,
+  savePartnerProfile,
+  recordPartnerWhatsappClick,
+} from '../services/partnerApi';
 
 const formatCurrency = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -7,15 +33,15 @@ const formatCurrency = new Intl.NumberFormat('pt-BR', {
 });
 
 const BUSINESS_BRANCHES = [
-  'Alimentação',
-  'Hospedagem',
-  'Turismo e passeios',
-  'Comércio',
-  'Beleza e bem-estar',
-  'Saúde',
+  'Hospedagem (Hotel / Pousada / Chalé)',
+  'Restaurante / Gastronomia / Quiosque',
+  'Turismo, Passeios de Barco e Escuna',
+  'Comércio Local',
+  'Beleza e Bem-estar',
+  'Saúde e Clínicas',
   'Automotivo',
-  'Construção e reformas',
-  'Serviços profissionais',
+  'Construção e Reformas',
+  'Serviços Profissionais',
   'Outro',
 ];
 
@@ -25,512 +51,794 @@ function normalizarWhatsapp(valor) {
   return /^55\d{10,11}$/.test(numero) ? numero : '';
 }
 
-export default function BusinessesView() {
-  const [planoAtual, setPlanoAtual] = useState(null);
+export default function BusinessesView({ publicPartners = [], onPartnersUpdated }) {
+  const {
+    isSignedIn,
+    user,
+    getToken,
+    openLoginModal,
+    logout,
+    partnerSession,
+    sessionLoading,
+    refreshPartnerSession,
+  } = usePartnerAuth();
+
+  const [selectedPlanId, setSelectedPlanId] = useState('mensal');
+  const [checkoutData, setCheckoutData] = useState(null);
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paymentFeedback, setPaymentFeedback] = useState('');
+
+  // Dados do Parceiro e do Negócio
+  const [responsavelNome, setResponsavelNome] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [empresaNome, setEmpresaNome] = useState('');
-  const [empresaTelefone, setEmpresaTelefone] = useState('');
-  const [empresaEndereco, setEmpresaEndereco] = useState('');
-  const [empresaRamo, setEmpresaRamo] = useState('');
-  const [canalAviso, setCanalAviso] = useState('WhatsApp');
-  const [emailAviso, setEmailAviso] = useState('');
-  const [pagamento, setPagamento] = useState('');
-  const [parcelas, setParcelas] = useState('1');
-  const [aceiteTermos, setAceiteTermos] = useState(false);
+  const [ramo, setRamo] = useState('');
+  const [regiao, setRegiao] = useState('Centro');
+  const [endereco, setEndereco] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [imagens, setImagens] = useState([]);
 
-  const [logoUrl, setLogoUrl] = useState(null);
-  const [fotosUrls, setFotosUrls] = useState([]);
-  const [contadorFotosText, setContadorFotosText] = useState(
-    'Mostre pratos, produtos, serviços ou o melhor que sua empresa oferece.'
-  );
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState('');
+  const [profileError, setProfileError] = useState('');
 
-  const [submittedData, setSubmittedData] = useState(null);
-  const [cliquesWhatsappDemo, setCliquesWhatsappDemo] = useState(0);
+  const formSectionRef = useRef(null);
+  const paymentSectionRef = useRef(null);
 
-  const cadastroRef = useRef(null);
-  const painelRef = useRef(null);
-  const planGridRef = useRef(null);
+  const sub = partnerSession?.subscription || null;
+  const existingProfile = partnerSession?.partner || partnerSession?.partnerProfile || null;
+  const canPost = Boolean(sub?.canPost);
 
-  function selecionarPlano(planKey) {
-    const plan = BUSINESS_PLANS[planKey];
-    setPlanoAtual(plan);
-    setSubmittedData(null);
-    setTimeout(() => {
-      cadastroRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
+  // Preenche o formulário quando os dados do parceiro vêm junto com o login
+  useEffect(() => {
+    if (existingProfile) {
+      setResponsavelNome(existingProfile.responsavelNome || user?.name || user?.fullName || '');
+      setTelefone(existingProfile.telefone || '');
+      setEmpresaNome(existingProfile.empresaNome || '');
+      setRamo(existingProfile.ramo || '');
+      setRegiao(existingProfile.regiao || 'Centro');
+      setEndereco(existingProfile.endereco || '');
+      setDescricao(existingProfile.descricao || '');
+      setLogoUrl(existingProfile.logoUrl || '');
+      setImagens(Array.isArray(existingProfile.imagens) ? existingProfile.imagens : []);
+    } else if (user) {
+      setResponsavelNome((prev) => prev || user.name || user.fullName || '');
+    }
+    if (sub?.planId && BUSINESS_PLANS[sub.planId]) {
+      setSelectedPlanId(sub.planId);
+    }
+  }, [existingProfile, user, sub?.planId]);
+
+  // Verifica retorno automático do Mercado Pago via query string (?mp_status=approved&plan=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mpStatus = params.get('mp_status');
+    const mpPlan = params.get('plan');
+    if (mpStatus === 'approved' && isSignedIn && user) {
+      handleConfirmSubscription(mpPlan || selectedPlanId);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, user]);
+
+  async function handleStartMercadoPagoCheckout(planId) {
+    setSelectedPlanId(planId);
+    setPaymentFeedback('');
+    if (!isSignedIn) {
+      openLoginModal();
+      return;
+    }
+    setPaymentBusy(true);
+    try {
+      const res = await createMercadoPagoCheckout(user, getToken, planId);
+      setCheckoutData(res?.checkout || res);
+      await refreshPartnerSession();
+      setTimeout(() => {
+        paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+    } catch (err) {
+      setPaymentFeedback(err?.message || 'Erro ao iniciar assinatura com Mercado Pago.');
+    } finally {
+      setPaymentBusy(false);
+    }
   }
 
-  function handleLogoChange(e) {
-    const arquivo = e.target.files?.[0];
-    if (logoUrl) URL.revokeObjectURL(logoUrl);
-    if (!arquivo) {
-      setLogoUrl(null);
+  async function handleConfirmSubscription(planIdToConfirm = selectedPlanId) {
+    if (!isSignedIn) {
+      openLoginModal();
       return;
     }
-    if (!arquivo.type.startsWith('image/')) {
-      e.target.value = '';
-      setLogoUrl(null);
-      alert('Selecione um arquivo de imagem para a logo.');
-      return;
+    setPaymentBusy(true);
+    setPaymentFeedback('');
+    try {
+      await confirmMercadoPagoPayment(
+        user,
+        getToken,
+        planIdToConfirm,
+        checkoutData?.subscriptionId || checkoutData?.preapprovalId || `mp_sub_${Date.now()}`
+      );
+      await refreshPartnerSession();
+      if (onPartnersUpdated) onPartnersUpdated();
+      setPaymentFeedback(
+        'Pagamento recorrente Mercado Pago confirmado! Seu acesso para cadastrar e publicar sua empresa está liberado.'
+      );
+      setTimeout(() => {
+        formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    } catch (err) {
+      setPaymentFeedback(err?.message || 'Não foi possível confirmar o pagamento.');
+    } finally {
+      setPaymentBusy(false);
     }
-    setLogoUrl(URL.createObjectURL(arquivo));
   }
 
-  function handleFotosChange(e) {
-    fotosUrls.forEach((u) => URL.revokeObjectURL(u));
-    const arquivos = Array.from(e.target.files || []);
-    if (arquivos.length > 5) {
-      e.target.value = '';
-      setFotosUrls([]);
-      setContadorFotosText('Selecione no máximo 5 fotos.');
-      return;
+  async function handleSimulateDays(days) {
+    if (!isSignedIn) return;
+    setPaymentBusy(true);
+    try {
+      await simulateSubscriptionExpiration(user, getToken, days);
+      await refreshPartnerSession();
+      if (onPartnersUpdated) onPartnersUpdated();
+    } finally {
+      setPaymentBusy(false);
     }
-    if (arquivos.some((arq) => !arq.type.startsWith('image/'))) {
-      e.target.value = '';
-      setFotosUrls([]);
-      setContadorFotosText('Envie somente arquivos de imagem.');
-      return;
-    }
-    setContadorFotosText(`${arquivos.length} de 5 fotos selecionadas.`);
-    setFotosUrls(arquivos.map((arq) => URL.createObjectURL(arq)));
   }
 
-  function handleSubmit(e) {
+  async function handleUploadBusinessImages(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (imagens.length + files.length > 6) {
+      setProfileError('Você pode enviar no máximo 6 imagens do seu negócio.');
+      return;
+    }
+    setProfileError('');
+    setUploadingImages(true);
+    try {
+      const uploadedUrls = await uploadPartnerFiles(user, getToken, files);
+      setImagens((prev) => [...prev, ...uploadedUrls].slice(0, 6));
+    } catch (err) {
+      setProfileError(err?.message || 'Falha ao enviar imagens.');
+    } finally {
+      setUploadingImages(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleUploadLogo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProfileError('');
+    setUploadingImages(true);
+    try {
+      const uploadedUrls = await uploadPartnerFiles(user, getToken, [file]);
+      if (uploadedUrls[0]) {
+        setLogoUrl(uploadedUrls[0]);
+      }
+    } catch (err) {
+      setProfileError(err?.message || 'Falha ao enviar logo.');
+    } finally {
+      setUploadingImages(false);
+      e.target.value = '';
+    }
+  }
+
+  function handleRemoveImage(idxToRemove) {
+    setImagens((prev) => prev.filter((_, idx) => idx !== idxToRemove));
+  }
+
+  async function handleSavePartnerSubmit(e) {
     e.preventDefault();
-    if (!planoAtual) return;
+    setProfileError('');
+    setProfileFeedback('');
 
-    const nomeTrim = empresaNome.trim();
-    if (/ar\s*-?\s*condicionado|climatiza/i.test(`${nomeTrim} ${empresaRamo}`)) {
-      alert(
-        'O Ubatuba Conecta já divulga a RF Ar Condicionado e não aceita outra empresa desse ramo.'
+    if (!canPost) {
+      setProfileError(
+        'Sua assinatura recorrente no Mercado Pago precisa estar ativa para publicar seu negócio.'
       );
       return;
     }
 
-    const numeroEmpresa = normalizarWhatsapp(empresaTelefone);
-    if (!numeroEmpresa) {
-      alert('Informe um WhatsApp válido com DDD para a vitrine.');
+    const numWhats = normalizarWhatsapp(telefone);
+    if (!numWhats) {
+      setProfileError('Informe um telefone/WhatsApp válido com DDD (ex: 12 99999-9999).');
       return;
     }
 
-    if (!fotosUrls.length) {
-      alert('Selecione pelo menos uma foto para a divulgação.');
+    if (imagens.length === 0) {
+      setProfileError('Envie pelo menos 1 imagem do seu negócio para exibir no site.');
       return;
     }
 
-    const canal = canalAviso === 'E-mail' ? emailAviso : 'WhatsApp cadastrado';
-
-    setCliquesWhatsappDemo(0);
-    setSubmittedData({
-      nome: nomeTrim,
-      ramo: empresaRamo,
-      endereco: empresaEndereco,
-      numeroWhatsapp: numeroEmpresa,
-      plano: planoAtual,
-      formaPagamento: pagamento,
-      parcelas: pagamento === 'Cartão de crédito' ? parcelas : '1',
-      canal,
-      logoUrl,
-      fotosUrls,
-    });
-
-    setTimeout(() => {
-      painelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+    setSavingProfile(true);
+    try {
+      await savePartnerProfile(user, getToken, {
+        responsavelNome: responsavelNome.trim(),
+        telefone: telefone.trim(),
+        empresaNome: empresaNome.trim(),
+        ramo,
+        regiao,
+        endereco: endereco.trim(),
+        descricao: descricao.trim(),
+        logoUrl,
+        imagens,
+      });
+      await refreshPartnerSession();
+      if (onPartnersUpdated) onPartnersUpdated();
+      setProfileFeedback(
+        'Parabéns! Os dados e imagens da sua empresa foram publicados na vitrine do Ubatuba Conecta.'
+      );
+    } catch (err) {
+      setProfileError(err?.message || 'Não foi possível salvar os dados da empresa.');
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
-  function handleWhatsappPublicoClick() {
-    if (!submittedData?.numeroWhatsapp) return;
-    setCliquesWhatsappDemo((c) => c + 1);
-    const mensagem = encodeURIComponent(
-      'Olá! Encontrei sua empresa no Ubatuba Conecta e gostaria de saber mais.'
+  function handlePartnerWhatsAppClick(partner) {
+    const num = normalizarWhatsapp(partner.telefone);
+    if (!num) return;
+    recordPartnerWhatsappClick(partner.id);
+    const msg = encodeURIComponent(
+      `Olá ${partner.responsavelNome || partner.empresaNome}! Vi sua empresa no Ubatuba Conecta e gostaria de saber mais.`
     );
-    window.open(
-      `https://wa.me/${submittedData.numeroWhatsapp}?text=${mensagem}`,
-      '_blank',
-      'noopener'
-    );
+    window.open(`https://wa.me/${num}?text=${msg}`, '_blank', 'noopener,noreferrer');
   }
+
+  const selectedPlan = BUSINESS_PLANS[selectedPlanId] || BUSINESS_PLANS.mensal;
 
   return (
     <section id="view-empresas" className="app-view active" aria-labelledby="empresas-titulo">
-      <p className="eyebrow eyebrow-accent">Vitrine local</p>
+      <p className="eyebrow eyebrow-accent">Área do Parceiro · Clerk + Mercado Pago + Go API</p>
       <h1 className="page-title" id="empresas-titulo">
-        Divulgue sua empresa
+        Seja Parceiro do Ubatuba Conecta
       </h1>
       <p className="page-intro">
-        Planos para negócios de Ubatuba. A RF Ar Condicionado já é a empresa de ar-condicionado da
-        plataforma; outros negócios desse ramo não podem se cadastrar.
+        Cadastre seu nome, telefone, empresa e envie fotos do seu negócio para aparecer em destaque
+        no site. A liberação de postagem é automática após o pagamento da recorrência via{' '}
+        <strong>Mercado Pago</strong>, e suas informações de assinatura acompanham seu login.
       </p>
 
-      <div className="plans-note">
-        <strong>Pagamento online</strong>
-        <span>
-          Você pode cobrar por um link de pagamento da InfinitePay. Nesta versão, o link é criado e
-          enviado manualmente; o pagamento e a publicação do anúncio precisam ser confirmados
-          manualmente. A ativação automática exige integração com servidor.
-        </span>
-      </div>
-
-      <div className="plan-grid plan-grid-spaced" ref={planGridRef}>
-        {Object.values(BUSINESS_PLANS).map((plan) => (
-          <article
-            key={plan.id}
-            className={`plan-card ${plan.recommended ? 'recommended' : ''}`}
-          >
-            <h2>{plan.nome}</h2>
-            <p>{plan.descricao}</p>
-            <span className="plan-price">{formatCurrency.format(plan.preco)}</span>
-            <p>Período de {plan.periodo}.</p>
-            <button
-              type="button"
-              className="button-primary"
-              onClick={() => selecionarPlano(plan.id)}
-            >
-              Escolher {plan.nome.toLowerCase()}
-            </button>
-          </article>
-        ))}
-      </div>
-
-      {planoAtual && (
-        <section
-          className="panel foldout open"
-          id="cadastroEmpresa"
-          ref={cadastroRef}
-          aria-labelledby="cadastro-titulo"
+      {/* Banner de Aviso de Vencimento em 3 Dias (ou Assinatura Vencida) vinculado ao Login */}
+      {isSignedIn && sub && (sub.expiringSoon || sub.expired) && (
+        <div
+          className={`partner-expiration-banner ${sub.expired ? 'is-expired' : 'is-warning'}`}
+          role="alert"
         >
-          <h2 id="cadastro-titulo">Dados da empresa</h2>
-          <p>
-            Escolha o plano primeiro. Nesta versão, o pagamento é combinado por um link criado
-            manualmente; a divulgação só começa após a confirmação do pagamento.
-          </p>
+          <div className="partner-expiration-icon">
+            <AlertTriangle size={24} />
+          </div>
+          <div className="partner-expiration-copy">
+            <strong>
+              {sub.expired
+                ? 'Assinatura Vencida — Seu anúncio está pausado'
+                : `Aviso de Vencimento: Faltam ${sub.daysRemaining} dia(s) para sua assinatura vencer!`}
+            </strong>
+            <p>
+              {sub.alertMessage ||
+                'Renove sua recorrência no Mercado Pago para manter sua empresa visível no site.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="button-primary button-sm"
+            onClick={() => handleStartMercadoPagoCheckout(sub.planId || 'mensal')}
+          >
+            Renovar no Mercado Pago
+          </button>
+        </div>
+      )}
 
-          <div className="selected-plan" id="resumoPlano">
-            <span>
-              {planoAtual.nome} · {planoAtual.periodo} · {formatCurrency.format(planoAtual.preco)}
-            </span>
+      {/* Barra de Status do Login (Clerk) + Simulador de Vencimento de 3 Dias */}
+      <div className="partner-auth-bar">
+        <div className="partner-auth-info">
+          <div className="partner-auth-avatar">
+            <UserCheck size={20} />
+          </div>
+          <div>
+            {isSignedIn ? (
+              <>
+                <strong>Logado como: {user?.name || user?.fullName || user?.email}</strong>
+                <span className="partner-auth-sub">
+                  {user?.email} · Status da assinatura:{' '}
+                  <b className={`sub-status-pill status-${sub?.status || 'none'}`}>
+                    {sub?.status === 'active'
+                      ? `Ativa (${sub.daysRemaining} dias restantes)`
+                      : sub?.status === 'expired'
+                      ? 'Vencida'
+                      : sub?.status === 'pending'
+                      ? 'Aguardando pagamento'
+                      : 'Sem assinatura ativa'}
+                  </b>
+                </span>
+              </>
+            ) : (
+              <>
+                <strong>Faça login para se tornar parceiro ou gerenciar sua empresa</strong>
+                <span className="partner-auth-sub">
+                  Autenticação integrada com Clerk — seus dados de assinatura e aviso de 3 dias
+                  carregam junto com seu login.
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="partner-auth-actions">
+          {isSignedIn ? (
+            <>
+              <div className="sim-buttons-group" title="Testar aviso de vencimento no login">
+                <button
+                  type="button"
+                  className="button-quiet button-sm"
+                  disabled={paymentBusy}
+                  onClick={() => handleSimulateDays(3)}
+                >
+                  <Clock size={14} /> Simular 3 dias p/ vencer
+                </button>
+                <button
+                  type="button"
+                  className="button-quiet button-sm"
+                  disabled={paymentBusy}
+                  onClick={() => handleSimulateDays(0)}
+                >
+                  Simular vencido
+                </button>
+                <button
+                  type="button"
+                  className="button-quiet button-sm"
+                  disabled={paymentBusy}
+                  onClick={() => handleSimulateDays(30)}
+                >
+                  <RefreshCw size={14} /> 30 dias ativos
+                </button>
+              </div>
+              <button type="button" className="button-quiet button-sm" onClick={logout}>
+                Sair da conta
+              </button>
+            </>
+          ) : (
+            <button type="button" className="button-primary" onClick={openLoginModal}>
+              Entrar / Criar Conta (Clerk)
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Passo 1: Escolha do Plano de Recorrência Mercado Pago */}
+      <div className="section-heading" style={{ marginTop: '28px' }}>
+        <div>
+          <p className="eyebrow eyebrow-accent">Passo 1 · Assinatura Recorrente</p>
+          <h2>Escolha seu plano no Mercado Pago</h2>
+          <p>
+            Assim que o pagamento da recorrência é confirmado, o formulário de postagem da sua
+            empresa é liberado automaticamente. Avisamos você no login quando faltarem{' '}
+            <strong>3 dias</strong> para o vencimento.
+          </p>
+        </div>
+      </div>
+
+      <div className="plan-grid plan-grid-spaced">
+        {Object.values(BUSINESS_PLANS).map((plan) => {
+          const isCurrentPlan = sub?.planId === plan.id && sub?.status === 'active';
+          return (
+            <article
+              key={plan.id}
+              className={`plan-card ${plan.recommended ? 'recommended' : ''} ${
+                selectedPlanId === plan.id ? 'selected-card' : ''
+              }`}
+            >
+              <h2>{plan.nome}</h2>
+              <p>{plan.descricao}</p>
+              <span className="plan-price">{formatCurrency.format(plan.preco)}</span>
+              <p>
+                Ciclo recorrente de <strong>{plan.periodo}</strong> · Aviso automático faltando{' '}
+                <strong>{plan.avisoDias} dias</strong>.
+              </p>
+              <button
+                type="button"
+                className={isCurrentPlan ? 'button-secondary' : 'button-primary'}
+                disabled={paymentBusy}
+                onClick={() => handleStartMercadoPagoCheckout(plan.id)}
+              >
+                <CreditCard size={16} />{' '}
+                {isCurrentPlan
+                  ? 'Plano Ativo · Renovar Ciclo'
+                  : `Assinar ${plan.nome} com Mercado Pago`}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+
+      {/* Box de Checkout / Confirmação Mercado Pago */}
+      {(checkoutData || (isSignedIn && !canPost)) && (
+        <section
+          className="panel mp-checkout-panel"
+          ref={paymentSectionRef}
+          aria-labelledby="mp-checkout-title"
+        >
+          <div className="mp-checkout-header">
+            <div>
+              <span className="mp-badge">Mercado Pago · Assinatura Recorrente</span>
+              <h2 id="mp-checkout-title">
+                { selectedPlan.nome } — { formatCurrency.format(selectedPlan.preco) } / { selectedPlan.periodo }
+              </h2>
+              <p>
+                Realize o pagamento da assinatura recorrente para liberar imediatamente o cadastro e
+                publicação da sua empresa no Ubatuba Conecta.
+              </p>
+            </div>
           </div>
 
-          <form id="formEmpresa" onSubmit={handleSubmit}>
+          <div className="mp-checkout-actions">
+            {(checkoutData?.checkoutUrl || checkoutData?.initPoint) &&
+              !checkoutData?.sandboxMode && (
+                <a
+                  href={checkoutData.checkoutUrl || checkoutData.initPoint}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button-primary"
+                >
+                  <ExternalLink size={16} /> Pagar no Ambiente Seguro Mercado Pago
+                </a>
+              )}
+
+            <button
+              type="button"
+              className="button-secondary"
+              disabled={paymentBusy}
+              onClick={() => handleConfirmSubscription(selectedPlan.id)}
+            >
+              <CheckCircle2 size={16} />{' '}
+              {paymentBusy
+                ? 'Processando confirmação...'
+                : 'Confirmar Pagamento da Recorrência (Liberar Postagem Agora)'}
+            </button>
+          </div>
+
+          {paymentFeedback && (
+            <div className="confirmation" role="status">
+              {paymentFeedback}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Passo 2: Cadastro do Parceiro (Nome, Telefone, Empresa e Upload de Imagens) */}
+      <section
+        className={`panel partner-form-panel ${!canPost ? 'is-locked' : ''}`}
+        ref={formSectionRef}
+        aria-labelledby="cadastro-parceiro-titulo"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow eyebrow-accent">Passo 2 · Dados do Negócio e Fotos</p>
+            <h2 id="cadastro-parceiro-titulo">Cadastrar e Publicar Minha Empresa</h2>
+            <p>
+              Preencha seu nome, telefone, nome da empresa e envie as imagens que você quer que
+              apareçam na vitrine do site.
+            </p>
+          </div>
+          <span className={`status-tag ${canPost ? 'tag-unlocked' : 'tag-locked'}`}>
+            {canPost ? (
+              <>
+                <CheckCircle2 size={14} /> Acesso Liberado para Postar
+              </>
+            ) : (
+              <>
+                <Lock size={14} /> Bloqueado até pagamento da recorrência
+              </>
+            )}
+          </span>
+        </div>
+
+        {!canPost && (
+          <div className="partner-locked-overlay-banner">
+            <Lock size={20} />
+            <div>
+              <strong>Acesso de postagem vinculado ao pagamento da recorrência</strong>
+              <p>
+                {!isSignedIn
+                  ? 'Faça login com sua conta Clerk e ative um plano no Mercado Pago acima para liberar a postagem.'
+                  : 'Escolha um plano acima e confirme o pagamento da recorrência no Mercado Pago para liberar a publicação.'}
+              </p>
+            </div>
+            {!isSignedIn ? (
+              <button type="button" className="button-primary button-sm" onClick={openLoginModal}>
+                Fazer Login
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button-secondary button-sm"
+                disabled={paymentBusy}
+                onClick={() => handleConfirmSubscription(selectedPlanId)}
+              >
+                Liberar Postagem (Confirmar Recorrência)
+              </button>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSavePartnerSubmit} className="partner-business-form">
+          <fieldset disabled={!canPost || savingProfile || sessionLoading} className="clean-fieldset">
             <div className="form-grid">
               <div>
-                <label htmlFor="empresaNome">Nome da empresa</label>
+                <label htmlFor="responsavelNome">
+                  <UserCheck size={15} /> Seu nome completo (Parceiro)
+                </label>
+                <input
+                  id="responsavelNome"
+                  name="responsavelNome"
+                  required
+                  placeholder="Ex.: João Silva"
+                  value={responsavelNome}
+                  onChange={(e) => setResponsavelNome(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="parceiroTelefone">
+                  <Phone size={15} /> Telefone / WhatsApp comercial
+                </label>
+                <input
+                  id="parceiroTelefone"
+                  name="telefone"
+                  type="tel"
+                  required
+                  placeholder="(12) 99999-9999"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                />
+                <p className="helper-text">
+                  Os clientes do site entrarão em contato diretamente por este WhatsApp.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="empresaNome">
+                  <Building2 size={15} /> Nome da empresa / negócio
+                </label>
                 <input
                   id="empresaNome"
                   name="empresaNome"
                   required
-                  placeholder="Nome divulgado"
+                  placeholder="Ex.: Pousada & Restaurante Mar Virado"
                   value={empresaNome}
                   onChange={(e) => setEmpresaNome(e.target.value)}
                 />
               </div>
+
               <div>
-                <label htmlFor="empresaTelefone">WhatsApp de contato</label>
-                <input
-                  id="empresaTelefone"
-                  name="empresaTelefone"
-                  type="tel"
-                  required
-                  placeholder="(12) 99999-9999"
-                  value={empresaTelefone}
-                  onChange={(e) => setEmpresaTelefone(e.target.value)}
-                />
-                <p className="helper-text">
-                  O botão da vitrine abrirá uma conversa com este número.
-                </p>
-              </div>
-              <div className="field-full">
-                <label htmlFor="empresaEndereco">Endereço da empresa</label>
-                <input
-                  id="empresaEndereco"
-                  name="empresaEndereco"
-                  required
-                  placeholder="Rua, número e bairro"
-                  value={empresaEndereco}
-                  onChange={(e) => setEmpresaEndereco(e.target.value)}
-                />
-              </div>
-              <div className="field-full">
-                <label htmlFor="empresaRamo">Ramo da empresa</label>
+                <label htmlFor="empresaRamo">Categoria / Ramo de atuação</label>
                 <select
                   id="empresaRamo"
-                  name="empresaRamo"
+                  name="ramo"
                   required
-                  value={empresaRamo}
-                  onChange={(e) => setEmpresaRamo(e.target.value)}
+                  value={ramo}
+                  onChange={(e) => setRamo(e.target.value)}
                 >
-                  <option value="">Selecione um ramo</option>
-                  {BUSINESS_BRANCHES.map((ramo) => (
-                    <option key={ramo} value={ramo}>
-                      {ramo === 'Outro' ? 'Outro ramo (exceto ar-condicionado)' : ramo}
+                  <option value="">Selecione a categoria</option>
+                  {BUSINESS_BRANCHES.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
                     </option>
                   ))}
                 </select>
-                <p className="helper-text">
-                  Não aceitamos cadastro de outras empresas de ar-condicionado.
-                </p>
+              </div>
+
+              <div>
+                <label htmlFor="empresaRegiao">Região em Ubatuba</label>
+                <select
+                  id="empresaRegiao"
+                  name="regiao"
+                  value={regiao}
+                  onChange={(e) => setRegiao(e.target.value)}
+                >
+                  <option value="Centro">Centro / Itaguá / Praia Grande</option>
+                  <option value="Norte">Norte de Ubatuba</option>
+                  <option value="Sul">Sul de Ubatuba</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="empresaEndereco">Endereço / Praia de referência</label>
+                <input
+                  id="empresaEndereco"
+                  name="endereco"
+                  required
+                  placeholder="Ex.: Av. Leovigildo Dias Vieira, 450 - Itaguá"
+                  value={endereco}
+                  onChange={(e) => setEndereco(e.target.value)}
+                />
               </div>
 
               <div className="field-full">
-                <span className="field-label">Logo da empresa</span>
+                <label htmlFor="empresaDescricao">
+                  Descrição do que sua empresa oferece (aparece no card do site)
+                </label>
+                <textarea
+                  id="empresaDescricao"
+                  name="descricao"
+                  rows={3}
+                  required
+                  placeholder="Conte os diferenciais do seu negócio, horários de atendimento, pratos, passeios ou serviços..."
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                />
+              </div>
+
+              {/* Upload de Logo Opcional */}
+              <div className="field-full">
+                <span className="field-label">Logo da empresa (Opcional)</span>
                 <div className="photo-picker">
                   <div>
-                    <label htmlFor="logoEmpresa">Selecionar logo</label>
-                    <p className="helper-text">
-                      Opcional. Uma imagem para identificar sua empresa.
-                    </p>
+                    <label htmlFor="uploadLogoParceiro" className="upload-trigger-label">
+                      <Upload size={16} /> Selecionar logo da empresa
+                    </label>
                     <input
-                      id="logoEmpresa"
+                      id="uploadLogoParceiro"
                       type="file"
                       accept="image/*"
-                      onChange={handleLogoChange}
+                      onChange={handleUploadLogo}
                     />
                     {logoUrl && (
-                      <div id="logoPreview" className="logo-preview">
-                        <img src={logoUrl} alt="Prévia da logo selecionada" />
+                      <div className="logo-preview">
+                        <img src={logoUrl} alt="Logo da empresa" />
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
+              {/* Upload de Imagens do Negócio */}
               <div className="field-full">
-                <span className="field-label">Fotos de produtos e serviços</span>
+                <span className="field-label">
+                  Imagens do seu negócio que vão aparecer no site (até 6 fotos)
+                </span>
                 <div className="photo-picker">
                   <div>
-                    <label htmlFor="fotosEmpresa">Selecionar até 5 fotos</label>
-                    <p className="helper-text" id="contadorFotos">
-                      {contadorFotosText}
+                    <label htmlFor="uploadFotosParceiro" className="upload-trigger-label">
+                      <Upload size={16} />{' '}
+                      {uploadingImages
+                        ? 'Enviando imagens para o servidor Go...'
+                        : 'Clique para enviar fotos do seu negócio'}
+                    </label>
+                    <p className="helper-text">
+                      Envie fotos da fachada, ambiente, pratos, quartos ou serviços ({imagens.length}/6
+                      enviadas).
                     </p>
                     <input
-                      id="fotosEmpresa"
+                      id="uploadFotosParceiro"
                       type="file"
                       accept="image/*"
                       multiple
-                      onChange={handleFotosChange}
+                      onChange={handleUploadBusinessImages}
                     />
                   </div>
                 </div>
-                {fotosUrls.length > 0 && (
-                  <div className="photo-list" id="listaFotos" aria-live="polite">
-                    {fotosUrls.map((url, idx) => (
-                      <div key={url} className="photo-preview">
-                        <img src={url} alt={`Foto selecionada ${idx + 1}`} />
+
+                {imagens.length > 0 && (
+                  <div className="photo-list" aria-live="polite">
+                    {imagens.map((url, idx) => (
+                      <div key={`${url}-${idx}`} className="photo-preview partner-photo-item">
+                        <img src={url} alt={`Foto do negócio ${idx + 1}`} />
+                        <button
+                          type="button"
+                          className="photo-remove-btn"
+                          onClick={() => handleRemoveImage(idx)}
+                          title="Remover imagem"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
-              <div className="field-full">
-                <label htmlFor="canalAviso">Receber aviso de renovação por</label>
-                <select
-                  id="canalAviso"
-                  name="canalAviso"
-                  value={canalAviso}
-                  onChange={(e) => setCanalAviso(e.target.value)}
-                >
-                  <option value="WhatsApp">WhatsApp cadastrado</option>
-                  <option value="E-mail">E-mail</option>
-                </select>
-              </div>
-
-              {canalAviso === 'E-mail' && (
-                <div className="field-full payment-note active" id="campoEmailAviso">
-                  <label htmlFor="emailAviso">E-mail para aviso de renovação</label>
-                  <input
-                    id="emailAviso"
-                    name="emailAviso"
-                    type="email"
-                    required
-                    placeholder="voce@empresa.com"
-                    value={emailAviso}
-                    onChange={(e) => setEmailAviso(e.target.value)}
-                  />
-                </div>
-              )}
-
-              <div className="field-full">
-                <span className="field-label">Forma de pagamento</span>
-                <div className="payment-options">
-                  {['Pix', 'Cartão de crédito', 'Cartão de débito'].map((metodo) => (
-                    <label key={metodo} className="payment-option">
-                      <input
-                        type="radio"
-                        name="pagamento"
-                        value={metodo}
-                        required
-                        checked={pagamento === metodo}
-                        onChange={(e) => setPagamento(e.target.value)}
-                      />{' '}
-                      {metodo === 'Cartão de crédito'
-                        ? 'Crédito'
-                        : metodo === 'Cartão de débito'
-                        ? 'Débito'
-                        : 'Pix'}
-                    </label>
-                  ))}
-                </div>
-
-                {pagamento === 'Cartão de crédito' && (
-                  <div className="payment-note active" id="notaCredito">
-                    <label htmlFor="parcelas">Parcelamento no crédito</label>
-                    <select
-                      id="parcelas"
-                      value={parcelas}
-                      onChange={(e) => setParcelas(e.target.value)}
-                    >
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={String(n)}>
-                          {n}x sem juros
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <p className="helper-text">
-                  Este formulário ainda não processa pagamentos. Gere o link no app InfinitePay e
-                  envie à empresa; não informe dados do cartão aqui.
-                </p>
-              </div>
-
-              <div className="field-full field-spaced">
-                <label className="payment-option">
-                  <input
-                    id="aceiteTermos"
-                    type="checkbox"
-                    required
-                    checked={aceiteTermos}
-                    onChange={(e) => setAceiteTermos(e.target.checked)}
-                  />{' '}
-                  Confirmo que os dados e as fotos pertencem à minha empresa.
-                </label>
-              </div>
             </div>
+
+            {profileError && (
+              <div className="partner-alert-error" role="alert">
+                <AlertTriangle size={16} /> {profileError}
+              </div>
+            )}
+
+            {profileFeedback && (
+              <div className="confirmation" role="status">
+                <CheckCircle2 size={18} /> {profileFeedback}
+              </div>
+            )}
 
             <div className="button-row button-row-spaced">
-              <button className="button-primary" type="submit">
-                Conferir cadastro
-              </button>
-              <button
-                className="button-quiet"
-                type="button"
-                id="trocarPlano"
-                onClick={() => {
-                  setPlanoAtual(null);
-                  setSubmittedData(null);
-                }}
-              >
-                Trocar plano
+              <button type="submit" className="button-primary" disabled={!canPost || savingProfile}>
+                <Sparkles size={16} />{' '}
+                {savingProfile
+                  ? 'Publicando no Ubatuba Conecta...'
+                  : existingProfile
+                  ? 'Atualizar Dados e Imagens no Site'
+                  : 'Publicar Meu Negócio no Site'}
               </button>
             </div>
-          </form>
+          </fieldset>
+        </form>
+      </section>
 
-          {submittedData && (
-            <>
-              <div className="confirmation" id="resultadoEmpresa" role="status">
-                Cadastro conferido para o plano {submittedData.plano.nome} (
-                {formatCurrency.format(submittedData.plano.preco)}). O pagamento por{' '}
-                {submittedData.formaPagamento}
-                {submittedData.formaPagamento === 'Cartão de crédito'
-                  ? ` em ${submittedData.parcelas}x`
-                  : ''}{' '}
-                ainda não foi processado. Crie e envie o link da InfinitePay manualmente; a empresa
-                não foi publicada.
-              </div>
+      {/* Vitrine Pública de Parceiros Ativos */}
+      <section className="panel" aria-labelledby="vitrine-parceiros-titulo">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow eyebrow-accent">Vitrine Ao Vivo</p>
+            <h2 id="vitrine-parceiros-titulo">Parceiros Ativos no Ubatuba Conecta</h2>
+            <p>
+              Empresas com assinatura recorrente em dia aparecem automaticamente aqui e na página
+              inicial.
+            </p>
+          </div>
+          <span className="status-tag">{publicPartners.length} parceiro(s) ativo(s)</span>
+        </div>
 
-              <section
-                className="panel"
-                id="painelAnunciante"
-                ref={painelRef}
-                aria-labelledby="painel-titulo"
-              >
-                <h2 id="painel-titulo">Painel do anunciante</h2>
-                <p>Prévia demonstrativa neste navegador. A divulgação ainda não foi publicada nem paga.</p>
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <span>Cliques no WhatsApp</span>
-                    <strong id="cliquesEmpresa">{cliquesWhatsappDemo}</strong>
+        {publicPartners.length === 0 ? (
+          <p className="helper-text">
+            Ainda não há parceiros publicados. Seja o primeiro a cadastrar sua empresa acima!
+          </p>
+        ) : (
+          <div className="listing-cards-grid">
+            {publicPartners.map((partner) => {
+              const cover =
+                partner.imagens?.[0] ||
+                partner.logoUrl ||
+                '/Imagens/logo_ubatuba_conecta_transparente.png';
+              return (
+                <article key={partner.id} className="uo-card uo-card-featured">
+                  <div className="uo-card-media">
+                    <img src={cover} alt={partner.empresaNome} loading="lazy" />
+                    <span className="uo-card-badge">Parceiro Oficial</span>
                   </div>
-                  <div className="stat-item">
-                    <span>Plano escolhido</span>
-                    <strong id="planoEmpresaPainel">
-                      {submittedData.plano.nome} · {submittedData.plano.periodo}
-                    </strong>
-                  </div>
-                  <div className="stat-item">
-                    <span>Vencimento</span>
-                    <strong>A definir após pagamento</strong>
-                  </div>
-                </div>
-                <p className="dashboard-note" id="avisoRenovacao">
-                  Após a confirmação do pagamento, o anúncio ficará ativo por{' '}
-                  {submittedData.plano.periodo}. O sistema poderá enviar um aviso{' '}
-                  {submittedData.plano.avisoDias} dias antes do vencimento por{' '}
-                  {submittedData.canal}; essa automação ainda precisa ser integrada.
-                </p>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  id="renovarPlano"
-                  onClick={() =>
-                    planGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
-                >
-                  Ver planos para renovar
-                </button>
-              </section>
-
-              <section className="panel" id="previaPublica" aria-labelledby="previa-titulo">
-                <div className="section-heading">
-                  <div>
-                    <h2 id="previa-titulo">Prévia da divulgação</h2>
-                    <p>Este cartão só ficará público após a confirmação do pagamento.</p>
-                  </div>
-                  <span className="status-tag">Não publicada</span>
-                </div>
-                <article className="listing-preview">
-                  <div className="listing-header">
-                    <div className="listing-logo" id="logoPublico">
-                      {submittedData.logoUrl ? (
-                        <img
-                          src={submittedData.logoUrl}
-                          alt={`Logo de ${submittedData.nome}`}
-                        />
-                      ) : (
-                        submittedData.nome.charAt(0).toUpperCase()
-                      )}
+                  <div className="uo-card-body">
+                    <div className="uo-card-topline">
+                      <span className="status-tag">{partner.ramo}</span>
+                      <span className="partner-region-tag">{partner.regiao}</span>
                     </div>
-                    <div>
-                      <h3 id="nomePublico">{submittedData.nome}</h3>
-                      <p id="ramoPublico">{submittedData.ramo}</p>
-                    </div>
-                  </div>
-                  <p className="public-address" id="enderecoPublico">
-                    {submittedData.endereco}
-                  </p>
-                  <div className="listing-gallery" id="galeriaPublica">
-                    {submittedData.fotosUrls.map((url, idx) => (
-                      <div key={url} className="photo-preview">
-                        <img src={url} alt={`Foto ${idx + 1} de ${submittedData.nome}`} />
+                    <h3>{partner.empresaNome}</h3>
+                    {partner.endereco && (
+                      <p className="uo-card-location">
+                        <MapPin size={14} /> {partner.endereco}
+                      </p>
+                    )}
+                    <p className="uo-card-desc">{partner.descricao}</p>
+                    {partner.imagens?.length > 1 && (
+                      <div className="partner-card-thumbs">
+                        {partner.imagens.map((img, i) => (
+                          <img
+                            key={`${partner.id}-thumb-${i}`}
+                            src={img}
+                            alt={`${partner.empresaNome} ${i + 1}`}
+                          />
+                        ))}
                       </div>
-                    ))}
+                    )}
+                    <div className="uo-card-footer">
+                      <small className="partner-owner-label">
+                        Por: {partner.responsavelNome}
+                      </small>
+                      <button
+                        type="button"
+                        className="button-primary button-sm"
+                        onClick={() => handlePartnerWhatsAppClick(partner)}
+                      >
+                        <MessageCircle size={14} /> WhatsApp
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    className="button-primary"
-                    id="whatsappPublico"
-                    type="button"
-                    onClick={handleWhatsappPublicoClick}
-                  >
-                    Falar pelo WhatsApp
-                  </button>
                 </article>
-              </section>
-            </>
-          )}
-        </section>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </section>
     </section>
   );
 }
