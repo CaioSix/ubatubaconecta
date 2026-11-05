@@ -515,6 +515,68 @@ export default async function handler(req, res) {
     return res.status(200).json({ subscription: computed });
   }
 
+  // 6.5 POST /api/partner/upload (Supports Vercel Blob 1GB free storage if BLOB_READ_WRITE_TOKEN is set, or compressed DataURL)
+  if (req.method === 'POST' && pathname === '/api/partner/upload') {
+    const user = extractUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Usuário não autenticado.' });
+    }
+    const sub = computeSubscriptionState(store.subscriptions[user.id]);
+    if (!sub.canPost) {
+      return res.status(403).json({
+        error: 'Sua assinatura precisa estar ativa (paga) no Mercado Pago para enviar imagens.',
+      });
+    }
+
+    const body = await parseJsonBody(req);
+    const dataUrls = Array.isArray(body.images) ? body.images.slice(0, 6) : [];
+    if (dataUrls.length === 0) {
+      return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+    }
+
+    const blobToken = (process.env.BLOB_READ_WRITE_TOKEN || '').trim();
+    if (!blobToken) {
+      // Sem Vercel Blob ativo, devolve as imagens já comprimidas (DataURL)
+      return res.status(200).json({ urls: dataUrls });
+    }
+
+    const uploadedUrls = [];
+    for (let i = 0; i < dataUrls.length; i++) {
+      const item = String(dataUrls[i] || '');
+      const match = item.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+      if (!match) {
+        uploadedUrls.push(item);
+        continue;
+      }
+      const mimeType = match[1];
+      const ext = mimeType.split('/')[1] || 'jpg';
+      const buffer = Buffer.from(match[2], 'base64');
+      const filename = `partners/${user.id}/img_${Date.now()}_${i}.${ext}`;
+
+      try {
+        const blobRes = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${blobToken}`,
+            'x-api-version': '7',
+            'x-content-type': mimeType,
+          },
+          body: buffer,
+        });
+        if (blobRes.ok) {
+          const blobData = await blobRes.json();
+          uploadedUrls.push(blobData.url || item);
+        } else {
+          uploadedUrls.push(item);
+        }
+      } catch {
+        uploadedUrls.push(item);
+      }
+    }
+
+    return res.status(200).json({ urls: uploadedUrls });
+  }
+
   // 7. POST / PUT /api/partner/profile
   if ((req.method === 'POST' || req.method === 'PUT') && pathname === '/api/partner/profile') {
     const user = extractUser(req);

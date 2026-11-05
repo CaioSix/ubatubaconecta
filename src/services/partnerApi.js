@@ -290,27 +290,29 @@ function fileToDataUrl(file) {
 }
 
 export async function uploadPartnerFiles(user, getToken, files) {
-  const headers = await buildAuthHeaders(user, getToken);
-  const formData = new FormData();
-  Array.from(files).forEach((file) => {
-    formData.append('images', file);
-  });
+  const compressedDataUrls = await Promise.all(Array.from(files).map(fileToDataUrl));
+  const headers = {
+    ...(await buildAuthHeaders(user, getToken)),
+    'Content-Type': 'application/json',
+  };
 
   try {
     const res = await fetch(`${API_BASE}/api/partner/upload`, {
       method: 'POST',
       headers,
-      body: formData,
+      body: JSON.stringify({ images: compressedDataUrls }),
     });
     if (res.ok) {
       const data = await res.json();
-      return data.urls || [];
+      if (Array.isArray(data.urls) && data.urls.length > 0) {
+        return data.urls;
+      }
     }
   } catch {
-    // fallback to DataURL if Go backend is unreachable
+    // fallback to compressed DataURLs
   }
 
-  return Promise.all(Array.from(files).map(fileToDataUrl));
+  return compressedDataUrls;
 }
 
 export async function savePartnerProfile(user, getToken, payload) {
