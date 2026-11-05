@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,7 +26,9 @@ type APIHandler struct {
 }
 
 func NewAPIHandler(st *store.Store, uploadDir string) *APIHandler {
-	_ = os.MkdirAll(uploadDir, 0o755)
+	if os.Getenv("VERCEL") == "" && uploadDir != "" {
+		_ = os.MkdirAll(uploadDir, 0o755)
+	}
 	return &APIHandler{
 		Store:     st,
 		UploadDir: uploadDir,
@@ -317,6 +320,8 @@ func (h *APIHandler) SimulateExpiration(w http.ResponseWriter, r *http.Request) 
 }
 
 // UploadPartnerImages handles multipart image uploads for a paid partner's business gallery and logo.
+// On Vercel Serverless Functions (or when UploadDir is empty), it encodes images as Base64 Data URLs
+// so they persist inside the partner profile without relying on an ephemeral container filesystem.
 func (h *APIHandler) UploadPartnerImages(w http.ResponseWriter, r *http.Request) {
 	user, err := auth.ExtractUser(r)
 	if err != nil {
@@ -330,8 +335,8 @@ func (h *APIHandler) UploadPartnerImages(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := r.ParseMultipartForm(20 << 20); err != nil {
-		writeError(w, http.StatusBadRequest, "Arquivo muito grande (limite de 20MB).")
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "Arquivo muito grande (limite de 10MB).")
 		return
 	}
 
@@ -345,8 +350,30 @@ func (h *APIHandler) UploadPartnerImages(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	useDataURL := os.Getenv("VERCEL") != "" || h.UploadDir == ""
 	var uploadedURLs []string
+
 	for idx, fh := range files {
+		src, err := fh.Open()
+		if err != nil {
+			continue
+		}
+		rawBytes, err := io.ReadAll(src)
+		_ = src.Close()
+		if err != nil || len(rawBytes) == 0 {
+			continue
+		}
+
+		if useDataURL {
+			mimeType := http.DetectContentType(rawBytes)
+			if !strings.HasPrefix(mimeType, "image/") {
+				mimeType = "image/jpeg"
+			}
+			encoded := base64.StdEncoding.EncodeToString(rawBytes)
+			uploadedURLs = append(uploadedURLs, fmt.Sprintf("data:%s;base64,%s", mimeType, encoded))
+			continue
+		}
+
 		ext := strings.ToLower(filepath.Ext(fh.Filename))
 		switch ext {
 		case ".jpg", ".jpeg", ".png", ".webp", ".gif":
@@ -354,23 +381,11 @@ func (h *APIHandler) UploadPartnerImages(w http.ResponseWriter, r *http.Request)
 			ext = ".jpg"
 		}
 
-		src, err := fh.Open()
-		if err != nil {
-			continue
-		}
-
 		filename := fmt.Sprintf("partner_%d_%d%s", time.Now().UnixNano(), idx, ext)
 		destPath := filepath.Join(h.UploadDir, filename)
-		dst, err := os.Create(destPath)
-		if err != nil {
-			_ = src.Close()
+		if err := os.WriteFile(destPath, rawBytes, 0o644); err != nil {
 			continue
 		}
-
-		_, _ = io.Copy(dst, src)
-		_ = dst.Close()
-		_ = src.Close()
-
 		uploadedURLs = append(uploadedURLs, "/uploads/"+filename)
 	}
 

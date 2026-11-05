@@ -1,11 +1,15 @@
 package store
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +17,7 @@ import (
 )
 
 const WarningThresholdDays = 3
+const kvStoreKey = "ubatuba_conecta_store_v1"
 
 type persistedData struct {
 	Subscriptions map[string]*models.Subscription   `json:"subscriptions"`
@@ -25,20 +30,34 @@ type Store struct {
 	data     persistedData
 }
 
+func resolveWritablePath(preferred string) string {
+	if os.Getenv("VERCEL") != "" {
+		return filepath.Join(os.TempDir(), "ubatuba-store.json")
+	}
+	return preferred
+}
+
 func NewStore(filePath string) (*Store, error) {
-	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
-		return nil, err
+	actualPath := resolveWritablePath(filePath)
+	if err := os.MkdirAll(filepath.Dir(actualPath), 0o755); err != nil {
+		actualPath = filepath.Join(os.TempDir(), "ubatuba-store.json")
 	}
 
 	s := &Store{
-		filePath: filePath,
+		filePath: actualPath,
 		data: persistedData{
 			Subscriptions: make(map[string]*models.Subscription),
 			Partners:      make(map[string]*models.PartnerProfile),
 		},
 	}
 
-	if raw, err := os.ReadFile(filePath); err == nil && len(raw) > 0 {
+	// 1. Try loading from Vercel KV / Upstash Redis if configured
+	if loaded := s.loadFromKV(); loaded {
+		return s, nil
+	}
+
+	// 2. Fallback to local/tmp file
+	if raw, err := os.ReadFile(actualPath); err == nil && len(raw) > 0 {
 		_ = json.Unmarshal(raw, &s.data)
 		if s.data.Subscriptions == nil {
 			s.data.Subscriptions = make(map[string]*models.Subscription)
@@ -51,12 +70,73 @@ func NewStore(filePath string) (*Store, error) {
 	return s, nil
 }
 
+func (s *Store) loadFromKV() bool {
+	kvURL := strings.TrimRight(strings.TrimSpace(os.Getenv("KV_REST_API_URL")), "/")
+	kvToken := strings.TrimSpace(os.Getenv("KV_REST_API_TOKEN"))
+	if kvURL == "" || kvToken == "" {
+		return false
+	}
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/get/%s", kvURL, kvStoreKey), nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Authorization", "Bearer "+kvToken)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	var wrapper struct {
+		Result string `json:"result"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil || wrapper.Result == "" {
+		return false
+	}
+
+	if err := json.Unmarshal([]byte(wrapper.Result), &s.data); err != nil {
+		return false
+	}
+	if s.data.Subscriptions == nil {
+		s.data.Subscriptions = make(map[string]*models.Subscription)
+	}
+	if s.data.Partners == nil {
+		s.data.Partners = make(map[string]*models.PartnerProfile)
+	}
+	return true
+}
+
+func (s *Store) saveToKV(raw []byte) {
+	kvURL := strings.TrimRight(strings.TrimSpace(os.Getenv("KV_REST_API_URL")), "/")
+	kvToken := strings.TrimSpace(os.Getenv("KV_REST_API_TOKEN"))
+	if kvURL == "" || kvToken == "" {
+		return
+	}
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/set/%s", kvURL, kvStoreKey), bytes.NewReader(raw))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+kvToken)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err == nil && resp != nil {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}
+}
+
 func (s *Store) saveLocked() error {
 	raw, err := json.MarshalIndent(s.data, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.filePath, raw, 0o644)
+	s.saveToKV(raw)
+	_ = os.WriteFile(s.filePath, raw, 0o644)
+	return nil
 }
 
 // ComputeSubscriptionState recalculates daysRemaining, expiringSoon (<= 3 days), expired, and canPost.
