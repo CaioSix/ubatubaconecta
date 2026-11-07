@@ -67,7 +67,7 @@ type UserSessionResponse struct {
 var AvailablePlans = []Plan{
 	{
 		ID:             "semanal",
-		Nome:           "Semanal",
+		Nome:           "Plano Semanal",
 		Periodo:        "7 dias",
 		DuracaoDias:    7,
 		AvisoDias:      3,
@@ -79,19 +79,19 @@ var AvailablePlans = []Plan{
 	},
 	{
 		ID:             "mensal",
-		Nome:           "Mensal Recorrente",
+		Nome:           "Plano Mensal",
 		Periodo:        "30 dias",
 		DuracaoDias:    30,
 		AvisoDias:      3,
 		Preco:          49.99,
-		Descricao:      "Assinatura mensal com renovação recorrente e destaque contínuo para turistas e moradores.",
+		Descricao:      "Destaque contínuo durante o mês inteiro para turistas e moradores.",
 		Recommended:    true,
 		FrequenciaTipo: "months",
 		FrequenciaVal:  1,
 	},
 	{
 		ID:             "anual",
-		Nome:           "Anual Recorrente",
+		Nome:           "Plano Anual",
 		Periodo:        "365 dias",
 		DuracaoDias:    365,
 		AvisoDias:      3,

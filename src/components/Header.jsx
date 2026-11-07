@@ -8,8 +8,6 @@ import {
   Building2,
   Waves,
   Home,
-  UserCheck,
-  LogIn,
   AlertTriangle,
 } from 'lucide-react';
 import { usePartnerAuth } from '../context/AuthContext';
@@ -21,17 +19,15 @@ export default function Header({
   itineraryCount,
   onOpenItinerary,
 }) {
-  const { isSignedIn, user, openLoginModal, partnerSession } = usePartnerAuth();
+  const { isSignedIn, partnerSession } = usePartnerAuth();
   const sub = partnerSession?.subscription;
-  const hasExpirationAlert = Boolean(sub?.expiringSoon || sub?.expired);
+  const hasExpirationAlert = Boolean(isSignedIn && (sub?.expiringSoon || sub?.expired));
 
   const navItems = [
     { id: 'inicio', label: 'Início', icon: Home },
     { id: 'praias', label: 'Praias', icon: Waves },
     { id: 'cidade', label: 'Ubatuba & Clima', icon: CloudSun },
-    { id: 'explorar', label: 'Onde Ficar & Fazer', icon: Compass },
     { id: 'vagas', label: 'Vagas', icon: Briefcase },
-    { id: 'empresas', label: 'Seja Parceiro', icon: Building2 },
   ];
 
   return (
@@ -104,36 +100,25 @@ export default function Header({
             {itineraryCount > 0 && <strong className="itinerary-count">{itineraryCount}</strong>}
           </button>
 
-          {isSignedIn ? (
-            <button
-              type="button"
-              className={`itinerary-trigger partner-auth-pill ${
-                hasExpirationAlert ? 'partner-auth-pill-warning' : ''
-              }`}
-              onClick={() => onNavigate('empresas')}
-              title={
-                hasExpirationAlert
-                  ? sub.alertMessage
-                  : 'Acessar painel do parceiro e gerenciar publicação'
-              }
-            >
-              {hasExpirationAlert ? <AlertTriangle size={16} /> : <UserCheck size={16} />}
-              <span>{user?.name?.split(' ')[0] || 'Parceiro'}</span>
-              {sub?.expiringSoon && (
-                <strong className="itinerary-count">{sub.daysRemaining}d</strong>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="itinerary-trigger"
-              onClick={openLoginModal}
-              title="Entrar com Clerk para anunciar sua empresa"
-            >
-              <LogIn size={16} />
-              <span>Entrar</span>
-            </button>
-          )}
+          <button
+            type="button"
+            className={`itinerary-trigger partner-auth-pill ${
+              hasExpirationAlert ? 'has-warning' : ''
+            }`}
+            aria-current={activeView === 'empresas' ? 'page' : undefined}
+            onClick={() => onNavigate('empresas')}
+            title={
+              hasExpirationAlert
+                ? sub.alertMessage
+                : 'Acessar Área do Parceiro e divulgar sua empresa'
+            }
+          >
+            {hasExpirationAlert ? <AlertTriangle size={16} /> : <Building2 size={16} />}
+            <span>Área do Parceiro</span>
+            {sub?.expiringSoon && (
+              <strong className="partner-exp-badge">{sub.daysRemaining}d</strong>
+            )}
+          </button>
         </div>
       </div>
     </header>

@@ -1,6 +1,19 @@
 export const INSTAGRAM_URL = 'https://www.instagram.com/ubatubaconecta/';
 export const CONTACT_EMAIL = 'ubatubaconecta2026@gmail.com';
 
+export const DEVELOPER_CONTACTS = [
+  {
+    name: 'Rafael Sousa',
+    phone: '(12) 99749-9084',
+    href: 'https://wa.me/5512997499084',
+  },
+  {
+    name: 'Caio Cavalcanti',
+    phone: '(11) 98280-4505',
+    href: 'https://wa.me/5511982804505',
+  },
+];
+
 export const APP_STORE_LINKS = {
   android: '',
   ios: '',
@@ -121,7 +134,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Famosa pela Gruta que Chora e pelas ondas perfeitas para a prática de skimboard.',
     details: 'Localizada ao lado da Praia do Lázaro, a Sununga encanta pela famosa Gruta que Chora e pelo visual imponente. Como é uma praia de tombo com correntes fortes, não é indicada para banho infantil, mas é um espetáculo para contemplação, fotos e skimboard.',
-    infrastructure: 'Quiosques próximos, acesso fácil a pé a partir do Lázaro.',
+    infrastructure: 'Conta com alguns quiosques na orla para atendimento aos visitantes e fácil acesso a pé a partir do Lázaro.',
     access: 'Acesso pelo bairro do Lázaro (Km 64 da Rio-Santos Sul).',
   },
   {
@@ -132,14 +145,14 @@ export const BEACHES_DATA = [
     rating: 5.0,
     positionOrder: 9,
     visitsRank: 1,
-    tags: ['estrutura', 'surf', 'familia'],
+    tags: ['surf', 'familia'],
     seaProfile: 'Ondas médias · Extensa faixa de areia',
     balneabilidade: 'Própria',
     image: 'https://ubatubaon.com.br/sites/default/files/styles/praia_capa_home_small/public/praias/praia-grande-6.jpg?itok=-l5VZhBU',
     fallbackImage: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=800&q=80',
-    shortDesc: 'A mais movimentada de Ubatuba, com infraestrutura completa de quiosques, salva-vidas e ótimas ondas.',
-    details: 'Com quase 2 km de extensão, a Praia Grande reúne excelente infraestrutura de quiosques, restaurantes, estacionamento (Zona Azul) e posto de salva-vidas. Muito procurada tanto por famílias quanto por surfistas.',
-    infrastructure: 'Quiosques completos, duchas, banheiros, salva-vidas, aluguel de pranchas.',
+    shortDesc: 'A mais movimentada de Ubatuba, com extensa orla atendida por dezenas de quiosques, restaurantes e posto de salva-vidas.',
+    details: 'Com quase 2 km de extensão, a Praia Grande conta com mais de 30 quiosques ao longo da faixa de areia e restaurantes na avenida da orla, além de estacionamento (Zona Azul) e posto de salva-vidas. Muito procurada tanto por famílias quanto por surfistas.',
+    infrastructure: 'Mais de 30 quiosques e restaurantes ao longo da orla para atendimento, duchas e posto de salva-vidas.',
     access: 'Acesso direto pela rodovia Rio-Santos (SP-055), a 5 km do Centro.',
   },
   {
@@ -150,14 +163,14 @@ export const BEACHES_DATA = [
     rating: 5.0,
     positionOrder: 7,
     visitsRank: 2,
-    tags: ['familia', 'estrutura'],
+    tags: ['familia'],
     seaProfile: 'Mar calmo e raso · Ideal para crianças',
     balneabilidade: 'Própria',
     image: 'https://ubatubaon.com.br/sites/default/files/styles/praia_capa_home_small/public/praias/pereque-acu-1.jpg?itok=I-HOnRzw',
     fallbackImage: 'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=800&q=80',
-    shortDesc: 'Extensa, plana e com águas tranquilas, excelente para famílias, caminhadas, stand-up paddle e quiosques.',
-    details: 'Muito próxima ao Centro de Ubatuba, a Praia do Perequê-Açú possui águas mansas, areia batida ótima para caminhar ou pedalar e dezenas de quiosques pé na areia. No canto direito fica a charmosa Barra Seca.',
-    infrastructure: 'Quiosques, ciclovia, restaurantes, pousadas, aluguel de caiaque e SUP.',
+    shortDesc: 'Extensa, plana e com águas tranquilas, excelente para famílias, caminhadas e stand-up paddle.',
+    details: 'Muito próxima ao Centro de Ubatuba, a Praia do Perequê-Açú possui águas mansas, areia batida ótima para caminhar ou pedalar e conta com cerca de 20 quiosques e restaurantes distribuídos pela orla.',
+    infrastructure: 'Cerca de 20 quiosques e restaurantes na orla para atender os visitantes, além de ciclovia.',
     access: 'Apenas 2 km ao norte do Centro de Ubatuba.',
   },
   {
@@ -174,8 +187,8 @@ export const BEACHES_DATA = [
     image: 'https://ubatubaon.com.br/sites/default/files/styles/praia_capa_home_small/public/praias/estaleiro-do-padre-6.jpg?itok=VNl_wbTe',
     fallbackImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Refúgio no Norte de Ubatuba com mar parecido com uma piscina natural e clima caiçara.',
-    details: 'Vizinha à Praia do Ubatumirim e à Almada, a Praia do Estaleiro tem mar extremamente calmo, vista para as ilhas da região norte e ambiente familiar acolhedor com quiosques de frutos do mar frescos.',
-    infrastructure: 'Quiosques caiçaras, estacionamento, passeios de barco para Ilha das Couves.',
+    details: 'Vizinha à Praia do Ubatumirim e à Almada, a Praia do Estaleiro tem mar extremamente calmo, vista para as ilhas da região norte e ambiente familiar acolhedor com quiosques e restaurantes na beira da praia.',
+    infrastructure: 'Conta com quiosques e restaurantes na orla para atendimento e saída de barcos para a Ilha das Couves.',
     access: 'Km 16 da Rio-Santos Norte, acesso por estrada secundária.',
   },
   {
@@ -193,7 +206,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Pequena e paradisíaca, cercada pela Mata Atlântica preservada, com águas transparentes.',
     details: 'A Praia do Alto é um verdadeiro cartão-postal escondido entre o Perequê-Açú e Itamambuca. O acesso é feito por uma curta trilha descendo da rodovia, revelando areia clara e mar transparente.',
-    infrastructure: 'Preservada (leve água e lanche; sombreiros naturais das árvores).',
+    infrastructure: 'Praia preservada (conta apenas com 1 pequeno quiosque rústico em dias de movimento; recomenda-se levar água).',
     access: 'Km 42 da Rio-Santos Norte, estacionamento no recuo da rodovia e trilha curta de 3 minutos.',
   },
   {
@@ -204,14 +217,14 @@ export const BEACHES_DATA = [
     rating: 4.8,
     positionOrder: 3,
     visitsRank: 5,
-    tags: ['familia', 'estrutura'],
+    tags: ['familia'],
     seaProfile: 'Piscina natural · Gastronomia caiçara',
     balneabilidade: 'Própria',
     image: 'https://ubatubaon.com.br/sites/default/files/styles/praia_capa_home_small/public/praias/praia-da-Almada2.jpg?itok=bqlAoVLs',
     fallbackImage: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=800&q=80',
-    shortDesc: 'Vila caiçara encantadora com mar manso, restaurantes tradicionais na areia e saída de barcos.',
-    details: 'Uma das praias mais queridas do Norte de Ubatuba para passar o dia em família. Águas calmas, restaurantes famosos pelo peixe azul-marinho e camarão na moranga, além de lanchas para a Ilha das Couves.',
-    infrastructure: 'Restaurantes tradicionais, quiosques, passeios de barco, pousadas.',
+    shortDesc: 'Vila caiçara encantadora com mar manso, quiosques e restaurantes tradicionais na areia.',
+    details: 'Uma das praias mais queridas do Norte de Ubatuba para passar o dia em família. Águas calmas, diversos quiosques e restaurantes ao longo da areia, além de saída de lanchas para a Ilha das Couves.',
+    infrastructure: 'Conta com cerca de 10 quiosques e restaurantes na orla para atendimento e passeios de barco.',
     access: 'Km 13 da Rio-Santos Norte, estrada asfaltada até a praia.',
   },
   {
@@ -229,7 +242,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Palco de campeonatos internacionais de surf e encontro do Rio Itamambuca com o mar.',
     details: 'Itamambuca une ondas de nível internacional a uma reserva ecológica charmosa. No canto direito, o encontro do Rio Itamambuca com o mar forma águas rasas perfeitas para crianças e stand-up paddle.',
-    infrastructure: 'Escolas de surf, restaurantes charmosos, pousadas, mercadinho e estacionamento Zona Azul.',
+    infrastructure: 'Conta com quiosques no canto direito junto ao rio, restaurantes na vila e estacionamento Zona Azul.',
     access: 'Km 36 da Rio-Santos Norte (12 km do Centro).',
   },
   {
@@ -247,7 +260,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Sombra natural dos chapéus-de-sol, mar azul-turquesa calmo no canto direito e ondas no canto esquerdo.',
     details: 'A Praia do Félix agrada a todos os perfis: o lado direito tem águas super mansas como piscina, ótimo para mergulho livre e crianças, enquanto o lado esquerdo tem ondas fortes para surf. Dá acesso por trilha curta à Prainha do Português.',
-    infrastructure: 'Quiosques, aluguel de cadeiras, salva-vidas e estacionamento.',
+    infrastructure: 'Conta apenas com quiosques ao longo da sombra das árvores para atender os banhistas, além de salva-vidas.',
     access: 'Km 34 da Rio-Santos Norte, entrada por condomínio arborizado.',
   },
   {
@@ -265,7 +278,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Combo completo: praia de visual incrível, rio de água doce, cachoeira do outro lado da pista e Ilha do Prumirim.',
     details: 'No Prumirim você pode curtir o encontro do rio com o mar no canto direito, pegar um barco de 5 minutos até a paradisíaca Ilha do Prumirim e ainda visitar a Cachoeira do Prumirim logo na entrada.',
-    infrastructure: 'Quiosques sofisticados e rústicos, barcos para a ilha, estacionamento.',
+    infrastructure: 'Conta com quiosques e restaurantes ao longo da praia e barcos para travessia até a ilha.',
     access: 'Km 30 da Rio-Santos Norte.',
   },
   {
@@ -283,7 +296,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'O aquário natural mais famoso de Ubatuba, com duas praias de águas verde-esmeralda perfeitas para flutuação.',
     details: 'Com controle de visitação por turnos para preservar o ecossistema, a Ilha das Couves oferece duas praias (Praia Menor e Praia Maior) conectadas por trilha leve de 5 minutos. Leve máscara de snorkel!',
-    infrastructure: 'Acesso por barcos credenciados saindo de Picinguaba, Almada ou Estaleiro.',
+    infrastructure: 'Reserva preservada (acesso por barcos credenciados saindo de Picinguaba, Almada ou Estaleiro).',
     access: 'Travessia marítima de 15 minutos a partir da Vila de Picinguaba (Norte).',
   },
   {
@@ -301,7 +314,7 @@ export const BEACHES_DATA = [
     fallbackImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     shortDesc: 'Eleita entre as praias mais bonitas do Brasil, acessível pela famosa Trilha das 7 Praias ou de barco.',
     details: 'Integrante da Trilha das 7 Praias (entre Lagoinha e Fortaleza), a Praia do Cedro do Sul é cercada por mata nativa intocada e águas super transparentes ideais para mergulho livre.',
-    infrastructure: 'Praia selvagem (acesso por trilha ou táxi-boat saindo da Lagoinha/Fortaleza).',
+    infrastructure: 'Praia preservada (conta apenas com 1 quiosque simples de apoio aos trilheiros).',
     access: 'Trilha a partir da Praia da Lagoinha ou Praia da Fortaleza (Sul).',
   },
   {
@@ -312,14 +325,14 @@ export const BEACHES_DATA = [
     rating: 4.8,
     positionOrder: 17,
     visitsRank: 4,
-    tags: ['familia', 'estrutura'],
+    tags: ['familia'],
     seaProfile: 'Mar calmo · Grande centro comercial e turístico do Sul',
     balneabilidade: 'Própria',
     image: 'https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=800&q=80',
     fallbackImage: 'https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=800&q=80',
-    shortDesc: 'Completa estrutura de quiosques, passeios de banana boat, escunas, comércio e águas tranquilas para toda a família.',
-    details: 'Principal polo turístico do extremo sul de Ubatuba, Maranduba tem calçadão movimentado, restaurantes, farmácias, mercados e mar manso perfeito para famílias.',
-    infrastructure: 'Quiosques, escunas, comércio completo, pousadas, posto de saúde.',
+    shortDesc: 'Ampla orla com dezenas de quiosques e restaurantes, passeios de escuna e águas tranquilas para toda a família.',
+    details: 'Principal polo turístico do extremo sul de Ubatuba, Maranduba tem calçadão movimentado, mais de 25 quiosques e restaurantes ao longo da orla e mar manso perfeito para famílias.',
+    infrastructure: 'Mais de 25 quiosques e restaurantes na orla para atender os visitantes, além de passeios de escuna.',
     access: 'Km 75 da Rio-Santos Sul (divisa próxima a Caraguatatuba).',
   },
 ];
@@ -554,7 +567,7 @@ export const INITIAL_JOBS = [
 export const BUSINESS_PLANS = {
   semanal: {
     id: 'semanal',
-    nome: 'Semanal',
+    nome: 'Plano Semanal',
     periodo: '7 dias',
     avisoDias: 3,
     preco: 19.99,
@@ -563,16 +576,16 @@ export const BUSINESS_PLANS = {
   },
   mensal: {
     id: 'mensal',
-    nome: 'Mensal Recorrente',
+    nome: 'Plano Mensal',
     periodo: '30 dias',
     avisoDias: 3,
     preco: 49.99,
-    descricao: 'Assinatura recorrente via Mercado Pago com destaque contínuo o mês inteiro.',
+    descricao: 'Destaque contínuo durante o mês inteiro para moradores e visitantes.',
     recommended: true,
   },
   anual: {
     id: 'anual',
-    nome: 'Anual Recorrente',
+    nome: 'Plano Anual',
     periodo: '365 dias',
     avisoDias: 3,
     preco: 399.99,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Search, ArrowRight } from 'lucide-react';
-import { BEACHES_DATA, STAY_LISTINGS } from '../data/ubatubaData';
+import { BEACHES_DATA } from '../data/ubatubaData';
 
 const QUICK_PROMPTS = [
   {
@@ -16,18 +16,6 @@ const QUICK_PROMPTS = [
     type: 'surf',
   },
   {
-    id: 'stay',
-    label: 'Onde ficar',
-    prompt: 'Sugira hospedagens e pousadas em Ubatuba para a minha viagem',
-    type: 'stay',
-  },
-  {
-    id: 'do',
-    label: 'O que fazer hoje',
-    prompt: 'O que dá para fazer hoje em Ubatuba com o clima atual?',
-    type: 'do',
-  },
-  {
     id: 'routes',
     label: 'Roteiro de fim de semana',
     prompt: 'Monte um roteiro de 3 dias em Ubatuba (Norte, Centro e Sul)',
@@ -35,7 +23,7 @@ const QUICK_PROMPTS = [
   },
   {
     id: 'partner',
-    label: 'Seja Parceiro',
+    label: 'Seja um Parceiro',
     prompt: 'Como faço para me tornar parceiro e divulgar minha empresa no Ubatuba Conecta?',
     type: 'partner',
   },
@@ -62,12 +50,12 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
       q.includes('empresa')
     ) {
       return {
-        title: 'Torne-se Parceiro Oficial do Ubatuba Conecta',
-        text: 'Você mesmo pode cadastrar sua empresa no portal! Basta entrar com sua conta Clerk, ativar sua assinatura recorrente pelo Mercado Pago e publicar seu nome, telefone/WhatsApp, dados da empresa e fotos do seu negócio.',
+        title: 'Seja um Parceiro do Ubatuba Conecta',
+        text: 'Você mesmo pode cadastrar e divulgar sua empresa no site! Acesse a Área do Parceiro, preencha os dados e fotos do seu negócio e escolha seu plano semanal, mensal ou anual.',
         recommendations: [
-          { label: '1. Login rápido com Clerk', tag: 'Aviso automático 3 dias antes de vencer' },
-          { label: '2. Recorrência via Mercado Pago', tag: 'Liberação imediata ao pagar' },
-          { label: '3. Galeria de fotos + WhatsApp direto', tag: 'Destaque na vitrine local' },
+          { label: '1. Cadastre os dados da sua empresa', tag: 'Nome, WhatsApp, endereço e fotos' },
+          { label: '2. Escolha seu plano de assinatura', tag: 'Plano Semanal, Mensal ou Anual' },
+          { label: '3. Atendimento direto no seu WhatsApp', tag: 'Destaque para moradores e turistas' },
         ],
         ctaLabel: 'Ir para a Área do Parceiro',
         onCta: () => onNavigate('empresas'),
@@ -85,7 +73,7 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
       const calmBeaches = BEACHES_DATA.filter((b) => b.tags.includes('familia')).slice(0, 4);
       return {
         title: 'Melhores praias para família e crianças em Ubatuba',
-        text: `Agora em Ubatuba faz ${tempStr}. Para ir com crianças e curtir mar calmo tipo piscina, recomendamos estas praias com águas tranquilas e boa estrutura:`,
+        text: `Agora em Ubatuba faz ${tempStr}. Para ir com crianças e curtir mar calmo tipo piscina, recomendamos estas praias com águas tranquilas:`,
         beaches: calmBeaches,
         ctaLabel: 'Ver todas as praias para família',
         onCta: () => onNavigate('praias', { tag: 'familia' }),
@@ -100,23 +88,6 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
         beaches: surfBeaches,
         ctaLabel: 'Explorar praias de surf',
         onCta: () => onNavigate('praias', { tag: 'surf' }),
-      };
-    }
-
-    if (
-      presetType === 'stay' ||
-      q.includes('hospeda') ||
-      q.includes('pousada') ||
-      q.includes('hotel') ||
-      q.includes('ficar') ||
-      q.includes('chalé')
-    ) {
-      return {
-        title: 'Onde ficar em Ubatuba',
-        text: 'Se você busca praticidade à noite e restaurantes a pé, fique no Centro/Itaguá. Para contato com a natureza e praias paradisíacas, escolha o Norte (Itamambuca, Ubatumirim). Para estrutura familiar na areia, o Sul (Maranduba, Lázaro) é excelente.',
-        stays: STAY_LISTINGS.slice(0, 3),
-        ctaLabel: 'Ver todas as hospedagens e parceiros',
-        onCta: () => onNavigate('explorar'),
       };
     }
 
@@ -136,7 +107,7 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
           },
           {
             label: 'Dia 2 · Centro & Natureza',
-            tag: 'Praia do Félix + Praia do Alto durante o dia e jantar na Orla do Itaguá / Perequê-Açú.',
+            tag: 'Praia do Félix + Praia do Alto durante o dia e passeio pela Orla do Itaguá / Perequê-Açú.',
           },
           {
             label: 'Dia 3 · Sul & Gruta que Chora',
@@ -152,8 +123,8 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
       title: `Dica do Guia Digital para hoje (${tempStr})`,
       text: `${
         weather?.current?.beachTip ||
-        'Aproveite as praias pela manhã e a gastronomia caiçara à tarde.'
-      } No momento temos ${waveStr}. Que tal começar conhecendo as praias mais bem avaliadas ou os parceiros locais?`,
+        'Aproveite as praias pela manhã e confira as condições ao vivo.'
+      } No momento temos ${waveStr}. Que tal começar conhecendo as praias mais bem avaliadas de Ubatuba?`,
       beaches: BEACHES_DATA.slice(0, 3),
       ctaLabel: 'Explorar guia completo de praias',
       onCta: () => onNavigate('praias'),
@@ -178,8 +149,8 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
           <p className="eyebrow">Ubatuba · Litoral Norte de São Paulo</p>
           <h1 id="inicio-titulo">Encontre o melhor de Ubatuba em um só lugar</h1>
           <p>
-            Guia de praias, previsão do tempo e ondas ao vivo, câmeras das estradas, hospedagens,
-            vagas de emprego e empresas parceiras locais.
+            Guia de praias, previsão do tempo e ondas ao vivo, câmeras das estradas, vagas de
+            emprego e divulgação para empresas parceiras locais.
           </p>
           <div className="button-row">
             <button
@@ -194,7 +165,7 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
               className="button-outline-light"
               onClick={() => onNavigate('empresas')}
             >
-              Seja Parceiro
+              Seja um Parceiro
             </button>
           </div>
         </div>
@@ -230,7 +201,7 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
 
         <p className="planner-greeting">
           Me conte como quer aproveitar Ubatuba ou o que você procura hoje — eu indico praias,
-          roteiros, hospedagens ou como divulgar o seu negócio como parceiro.
+          roteiros de viagem ou como divulgar sua empresa como parceiro.
         </p>
 
         <form className="planner-form" onSubmit={handleSearchSubmit}>
@@ -240,7 +211,7 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Pergunte sobre praias para família, surf, hospedagem, roteiros ou parceria..."
+              placeholder="Pergunte sobre praias para família, surf, roteiros ou parceria..."
               aria-label="Pergunte ao assistente de viagem"
             />
           </div>
@@ -296,36 +267,6 @@ export default function HeroPlanner({ onNavigate, weather, onAddToItinerary }) {
                           title: beach.name,
                           category: `Praia · ${beach.region}`,
                           location: beach.regionLabel,
-                        })
-                      }
-                    >
-                      + Roteiro
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {assistantReply.stays && (
-              <div className="planner-mini-grid">
-                {assistantReply.stays.map((stay) => (
-                  <div key={stay.id} className="planner-mini-card">
-                    <div>
-                      <strong>{stay.title}</strong>
-                      <span>
-                        {stay.category} · {stay.location}
-                      </span>
-                      <small>{stay.priceLabel}</small>
-                    </div>
-                    <button
-                      type="button"
-                      className="button-secondary button-sm"
-                      onClick={() =>
-                        onAddToItinerary({
-                          id: stay.id,
-                          title: stay.title,
-                          category: stay.category,
-                          location: stay.location,
                         })
                       }
                     >

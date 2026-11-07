@@ -6,7 +6,6 @@ const CITY_FILTERS = [
   { id: 'tempo', label: 'Tempo e praias' },
   { id: 'servicos', label: 'Serviços & Mobilidade' },
   { id: 'agenda', label: 'Notícias e agenda' },
-  { id: 'trabalho', label: 'Empregos' },
   { id: 'turismo', label: 'Turismo' },
 ];
 
@@ -147,7 +146,7 @@ export default function CityView({
             <button
               className="button-secondary button-sm"
               type="button"
-              onClick={() => onNavigate('explorar')}
+              onClick={() => onNavigate('inicio')}
             >
               Ler guias de mobilidade
             </button>
@@ -178,25 +177,6 @@ export default function CityView({
               além de passeios ecológicos no Parque Estadual da Serra do Mar.
             </p>
             <p className="source-line">Cada evento informa local e horário no painel da cidade</p>
-          </article>
-        )}
-
-        {shouldShow('trabalho') && (
-          <article className="city-card" data-category="trabalho">
-            <span className="status-tag">Empregos</span>
-            <h2>Oportunidades de trabalho</h2>
-            <p>
-              Encontre vagas divulgadas por empresas de Ubatuba. Cada anúncio fica disponível por
-              até 7 dias após a publicação.
-            </p>
-            <button
-              className="button-primary"
-              type="button"
-              onClick={() => onNavigate('vagas')}
-            >
-              Ver vagas de emprego
-            </button>
-            <p className="source-line">Vagas revisadas antes da publicação</p>
           </article>
         )}
 

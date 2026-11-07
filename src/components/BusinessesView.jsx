@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
-  CreditCard,
   Upload,
   Building2,
   Phone,
@@ -10,10 +9,7 @@ import {
   Sparkles,
   ExternalLink,
   Clock,
-  Lock,
   Trash2,
-  MessageCircle,
-  MapPin,
   RefreshCw,
 } from 'lucide-react';
 import { BUSINESS_PLANS } from '../data/ubatubaData';
@@ -24,7 +20,6 @@ import {
   simulateSubscriptionExpiration,
   uploadPartnerFiles,
   savePartnerProfile,
-  recordPartnerWhatsappClick,
 } from '../services/partnerApi';
 
 const formatCurrency = new Intl.NumberFormat('pt-BR', {
@@ -51,7 +46,7 @@ function normalizarWhatsapp(valor) {
   return /^55\d{10,11}$/.test(numero) ? numero : '';
 }
 
-export default function BusinessesView({ publicPartners = [], onPartnersUpdated }) {
+export default function BusinessesView({ onPartnersUpdated }) {
   const {
     isSignedIn,
     user,
@@ -59,7 +54,6 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
     openLoginModal,
     logout,
     partnerSession,
-    sessionLoading,
     refreshPartnerSession,
   } = usePartnerAuth();
 
@@ -67,8 +61,9 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
   const [checkoutData, setCheckoutData] = useState(null);
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paymentFeedback, setPaymentFeedback] = useState('');
+  const [needsSubscriptionNotice, setNeedsSubscriptionNotice] = useState('');
 
-  // Dados do Parceiro e do Negócio
+  // Dados do Parceiro e do Negócio (Passo 2 sempre liberado para preenchimento)
   const [responsavelNome, setResponsavelNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [empresaNome, setEmpresaNome] = useState('');
@@ -84,8 +79,10 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
   const [profileFeedback, setProfileFeedback] = useState('');
   const [profileError, setProfileError] = useState('');
 
-  const formSectionRef = useRef(null);
+  const plansSectionRef = useRef(null);
   const paymentSectionRef = useRef(null);
+  const formSectionRef = useRef(null);
+  const successMessageRef = useRef(null);
 
   const sub = partnerSession?.subscription || null;
   const existingProfile = partnerSession?.partner || partnerSession?.partnerProfile || null;
@@ -94,15 +91,21 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
   // Preenche o formulário quando os dados do parceiro vêm junto com o login
   useEffect(() => {
     if (existingProfile) {
-      setResponsavelNome(existingProfile.responsavelNome || user?.name || user?.fullName || '');
-      setTelefone(existingProfile.telefone || '');
-      setEmpresaNome(existingProfile.empresaNome || '');
-      setRamo(existingProfile.ramo || '');
-      setRegiao(existingProfile.regiao || 'Centro');
-      setEndereco(existingProfile.endereco || '');
-      setDescricao(existingProfile.descricao || '');
-      setLogoUrl(existingProfile.logoUrl || '');
-      setImagens(Array.isArray(existingProfile.imagens) ? existingProfile.imagens : []);
+      setResponsavelNome((prev) => prev || existingProfile.responsavelNome || user?.name || '');
+      setTelefone((prev) => prev || existingProfile.telefone || '');
+      setEmpresaNome((prev) => prev || existingProfile.empresaNome || '');
+      setRamo((prev) => prev || existingProfile.ramo || '');
+      setRegiao((prev) => prev || existingProfile.regiao || 'Centro');
+      setEndereco((prev) => prev || existingProfile.endereco || '');
+      setDescricao((prev) => prev || existingProfile.descricao || '');
+      setLogoUrl((prev) => prev || existingProfile.logoUrl || '');
+      setImagens((prev) =>
+        prev.length > 0
+          ? prev
+          : Array.isArray(existingProfile.imagens)
+          ? existingProfile.imagens
+          : []
+      );
     } else if (user) {
       setResponsavelNome((prev) => prev || user.name || user.fullName || '');
     }
@@ -123,7 +126,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, user]);
 
-  async function handleStartMercadoPagoCheckout(planId) {
+  async function handleSelectPlan(planId) {
     setSelectedPlanId(planId);
     setPaymentFeedback('');
     if (!isSignedIn) {
@@ -139,7 +142,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
         paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 80);
     } catch (err) {
-      setPaymentFeedback(err?.message || 'Erro ao iniciar assinatura com Mercado Pago.');
+      setPaymentFeedback(err?.message || 'Erro ao iniciar assinatura.');
     } finally {
       setPaymentBusy(false);
     }
@@ -160,13 +163,37 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
         checkoutData?.subscriptionId || checkoutData?.preapprovalId || `mp_sub_${Date.now()}`
       );
       await refreshPartnerSession();
-      if (onPartnersUpdated) onPartnersUpdated();
-      setPaymentFeedback(
-        'Pagamento recorrente Mercado Pago confirmado! Seu acesso para cadastrar e publicar sua empresa está liberado.'
-      );
-      setTimeout(() => {
-        formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 120);
+      setNeedsSubscriptionNotice('');
+
+      // Se o empreendedor já preencheu o Passo 2 antes de pagar, publica automaticamente!
+      const numWhats = normalizarWhatsapp(telefone);
+      if (responsavelNome.trim() && empresaNome.trim() && numWhats && imagens.length > 0) {
+        await savePartnerProfile(user, getToken, {
+          responsavelNome: responsavelNome.trim(),
+          telefone: telefone.trim(),
+          empresaNome: empresaNome.trim(),
+          ramo: ramo || 'Comércio Local',
+          regiao,
+          endereco: endereco.trim(),
+          descricao: descricao.trim(),
+          logoUrl,
+          imagens,
+        });
+        await refreshPartnerSession();
+        if (onPartnersUpdated) onPartnersUpdated();
+        setProfileFeedback('Empresa publicada com sucesso.');
+        setTimeout(() => {
+          successMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 120);
+      } else {
+        if (onPartnersUpdated) onPartnersUpdated();
+        setPaymentFeedback(
+          'Assinatura confirmada! Agora clique em "Publicar meu negócio no site ou aplicativo" no formulário abaixo.'
+        );
+        setTimeout(() => {
+          formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+      }
     } catch (err) {
       setPaymentFeedback(err?.message || 'Não foi possível confirmar o pagamento.');
     } finally {
@@ -199,7 +226,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
       const uploadedUrls = await uploadPartnerFiles(user, getToken, files);
       setImagens((prev) => [...prev, ...uploadedUrls].slice(0, 6));
     } catch (err) {
-      setProfileError(err?.message || 'Falha ao enviar imagens.');
+      setProfileError(err?.message || 'Falha ao carregar imagens.');
     } finally {
       setUploadingImages(false);
       e.target.value = '';
@@ -217,7 +244,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
         setLogoUrl(uploadedUrls[0]);
       }
     } catch (err) {
-      setProfileError(err?.message || 'Falha ao enviar logo.');
+      setProfileError(err?.message || 'Falha ao carregar logo.');
     } finally {
       setUploadingImages(false);
       e.target.value = '';
@@ -233,13 +260,6 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
     setProfileError('');
     setProfileFeedback('');
 
-    if (!canPost) {
-      setProfileError(
-        'Sua assinatura recorrente no Mercado Pago precisa estar ativa para publicar seu negócio.'
-      );
-      return;
-    }
-
     const numWhats = normalizarWhatsapp(telefone);
     if (!numWhats) {
       setProfileError('Informe um telefone/WhatsApp válido com DDD (ex: 12 99999-9999).');
@@ -248,6 +268,18 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
 
     if (imagens.length === 0) {
       setProfileError('Envie pelo menos 1 imagem do seu negócio para exibir no site.');
+      return;
+    }
+
+    // Se o empreendedor ainda não pagou a assinatura, direciona para a aba/seção de assinatura (Passo 1) para escolher o plano
+    if (!canPost) {
+      setNeedsSubscriptionNotice(
+        'Os dados da sua empresa estão prontos! Escolha seu plano de assinatura abaixo para concluir a publicação.'
+      );
+      plansSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!isSignedIn) {
+        openLoginModal();
+      }
       return;
     }
 
@@ -266,9 +298,10 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
       });
       await refreshPartnerSession();
       if (onPartnersUpdated) onPartnersUpdated();
-      setProfileFeedback(
-        'Parabéns! Os dados e imagens da sua empresa foram publicados na vitrine do Ubatuba Conecta.'
-      );
+      setProfileFeedback('Empresa publicada com sucesso.');
+      setTimeout(() => {
+        successMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     } catch (err) {
       setProfileError(err?.message || 'Não foi possível salvar os dados da empresa.');
     } finally {
@@ -276,31 +309,20 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
     }
   }
 
-  function handlePartnerWhatsAppClick(partner) {
-    const num = normalizarWhatsapp(partner.telefone);
-    if (!num) return;
-    recordPartnerWhatsappClick(partner.id);
-    const msg = encodeURIComponent(
-      `Olá ${partner.responsavelNome || partner.empresaNome}! Vi sua empresa no Ubatuba Conecta e gostaria de saber mais.`
-    );
-    window.open(`https://wa.me/${num}?text=${msg}`, '_blank', 'noopener,noreferrer');
-  }
-
   const selectedPlan = BUSINESS_PLANS[selectedPlanId] || BUSINESS_PLANS.mensal;
 
   return (
     <section id="view-empresas" className="app-view active" aria-labelledby="empresas-titulo">
-      <p className="eyebrow eyebrow-accent">Área do Parceiro · Clerk + Mercado Pago + Go API</p>
+      <p className="eyebrow eyebrow-accent">Área do Parceiro</p>
       <h1 className="page-title" id="empresas-titulo">
-        Seja Parceiro do Ubatuba Conecta
+        Seja um Parceiro do Ubatuba Conecta
       </h1>
       <p className="page-intro">
-        Cadastre seu nome, telefone, empresa e envie fotos do seu negócio para aparecer em destaque
-        no site. A liberação de postagem é automática após o pagamento da recorrência via{' '}
-        <strong>Mercado Pago</strong>, e suas informações de assinatura acompanham seu login.
+        Cadastre seu nome, telefone, empresa e envie fotos do seu negócio para divulgar no site e
+        receber clientes diretamente pelo WhatsApp.
       </p>
 
-      {/* Banner de Aviso de Vencimento em 3 Dias (ou Assinatura Vencida) vinculado ao Login */}
+      {/* Banner de Aviso de Vencimento em 3 Dias (ou Assinatura Vencida) */}
       {isSignedIn && sub && (sub.expiringSoon || sub.expired) && (
         <div
           className={`partner-expiration-banner ${sub.expired ? 'is-expired' : 'is-warning'}`}
@@ -317,20 +339,20 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
             </strong>
             <p>
               {sub.alertMessage ||
-                'Renove sua recorrência no Mercado Pago para manter sua empresa visível no site.'}
+                'Renove sua assinatura para manter sua empresa visível no site.'}
             </p>
           </div>
           <button
             type="button"
             className="button-primary button-sm"
-            onClick={() => handleStartMercadoPagoCheckout(sub.planId || 'mensal')}
+            onClick={() => handleSelectPlan(sub.planId || 'mensal')}
           >
-            Renovar no Mercado Pago
+            Renovar Assinatura
           </button>
         </div>
       )}
 
-      {/* Barra de Status do Login (Clerk) + Simulador de Vencimento de 3 Dias */}
+      {/* Barra de Conta do Parceiro */}
       <div className="partner-auth-bar">
         <div className="partner-auth-info">
           <div className="partner-auth-avatar">
@@ -339,9 +361,9 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
           <div>
             {isSignedIn ? (
               <>
-                <strong>Logado como: {user?.name || user?.fullName || user?.email}</strong>
+                <strong>Olá, {user?.name || user?.fullName || user?.email}</strong>
                 <span className="partner-auth-sub">
-                  {user?.email} · Status da assinatura:{' '}
+                  {user?.email} · Assinatura:{' '}
                   <b className={`sub-status-pill status-${sub?.status || 'none'}`}>
                     {sub?.status === 'active'
                       ? `Ativa (${sub.daysRemaining} dias restantes)`
@@ -349,16 +371,15 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
                       ? 'Vencida'
                       : sub?.status === 'pending'
                       ? 'Aguardando pagamento'
-                      : 'Sem assinatura ativa'}
+                      : 'Sem plano ativo'}
                   </b>
                 </span>
               </>
             ) : (
               <>
-                <strong>Faça login para se tornar parceiro ou gerenciar sua empresa</strong>
+                <strong>Acesse sua conta de parceiro</strong>
                 <span className="partner-auth-sub">
-                  Autenticação integrada com Clerk — seus dados de assinatura e aviso de 3 dias
-                  carregam junto com seu login.
+                  Entre ou crie sua conta para gerenciar sua assinatura e publicar sua empresa.
                 </span>
               </>
             )}
@@ -400,24 +421,40 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
             </>
           ) : (
             <button type="button" className="button-primary" onClick={openLoginModal}>
-              Entrar / Criar Conta (Clerk)
+              Entrar / Criar Conta
             </button>
           )}
         </div>
       </div>
 
-      {/* Passo 1: Escolha do Plano de Recorrência Mercado Pago */}
-      <div className="section-heading" style={{ marginTop: '28px' }}>
+      {/* Passo 1: Escolha do Plano de Assinatura */}
+      <div
+        className="section-heading"
+        style={{ marginTop: '28px' }}
+        ref={plansSectionRef}
+        id="planos-assinatura"
+      >
         <div>
-          <p className="eyebrow eyebrow-accent">Passo 1 · Assinatura Recorrente</p>
-          <h2>Escolha seu plano no Mercado Pago</h2>
+          <p className="eyebrow eyebrow-accent">Passo 1 · Planos de Assinatura</p>
+          <h2>Escolha seu plano</h2>
           <p>
-            Assim que o pagamento da recorrência é confirmado, o formulário de postagem da sua
-            empresa é liberado automaticamente. Avisamos você no login quando faltarem{' '}
-            <strong>3 dias</strong> para o vencimento.
+            Escolha o plano ideal para divulgar sua empresa. Você recebe um aviso automático quando
+            faltarem <strong>3 dias</strong> para o vencimento.
           </p>
         </div>
       </div>
+
+      {needsSubscriptionNotice && !canPost && (
+        <div className="partner-expiration-banner is-warning" role="status">
+          <div className="partner-expiration-icon">
+            <Sparkles size={22} />
+          </div>
+          <div className="partner-expiration-copy">
+            <strong>Falta apenas escolher seu plano de assinatura!</strong>
+            <p>{needsSubscriptionNotice}</p>
+          </div>
+        </div>
+      )}
 
       <div className="plan-grid plan-grid-spaced">
         {Object.values(BUSINESS_PLANS).map((plan) => {
@@ -440,19 +477,16 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
                 type="button"
                 className={isCurrentPlan ? 'button-secondary' : 'button-primary'}
                 disabled={paymentBusy}
-                onClick={() => handleStartMercadoPagoCheckout(plan.id)}
+                onClick={() => handleSelectPlan(plan.id)}
               >
-                <CreditCard size={16} />{' '}
-                {isCurrentPlan
-                  ? 'Plano Ativo · Renovar Ciclo'
-                  : `Assinar ${plan.nome} com Mercado Pago`}
+                {plan.nome}
               </button>
             </article>
           );
         })}
       </div>
 
-      {/* Box de Checkout / Confirmação Mercado Pago */}
+      {/* Box de Confirmação de Assinatura */}
       {(checkoutData || (isSignedIn && !canPost)) && (
         <section
           className="panel mp-checkout-panel"
@@ -461,13 +495,14 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
         >
           <div className="mp-checkout-header">
             <div>
-              <span className="mp-badge">Mercado Pago · Assinatura Recorrente</span>
+              <span className="mp-badge">Pagamento da Assinatura</span>
               <h2 id="mp-checkout-title">
-                { selectedPlan.nome } — { formatCurrency.format(selectedPlan.preco) } / { selectedPlan.periodo }
+                {selectedPlan.nome} — {formatCurrency.format(selectedPlan.preco)} /{' '}
+                {selectedPlan.periodo}
               </h2>
               <p>
-                Realize o pagamento da assinatura recorrente para liberar imediatamente o cadastro e
-                publicação da sua empresa no Ubatuba Conecta.
+                Confirme o pagamento da assinatura para publicar sua empresa no site Ubatuba
+                Conecta.
               </p>
             </div>
           </div>
@@ -481,7 +516,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
                   rel="noopener noreferrer"
                   className="button-primary"
                 >
-                  <ExternalLink size={16} /> Pagar no Ambiente Seguro Mercado Pago
+                  <ExternalLink size={16} /> Pagar no Mercado Pago
                 </a>
               )}
 
@@ -492,9 +527,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
               onClick={() => handleConfirmSubscription(selectedPlan.id)}
             >
               <CheckCircle2 size={16} />{' '}
-              {paymentBusy
-                ? 'Processando confirmação...'
-                : 'Confirmar Pagamento da Recorrência (Liberar Postagem Agora)'}
+              {paymentBusy ? 'Processando...' : `Confirmar pagamento (${selectedPlan.nome})`}
             </button>
           </div>
 
@@ -506,9 +539,9 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
         </section>
       )}
 
-      {/* Passo 2: Cadastro do Parceiro (Nome, Telefone, Empresa e Upload de Imagens) */}
+      {/* Passo 2: Cadastro do Parceiro (Sempre liberado para o empreendedor preencher) */}
       <section
-        className={`panel partner-form-panel ${!canPost ? 'is-locked' : ''}`}
+        className="panel partner-form-panel"
         ref={formSectionRef}
         aria-labelledby="cadastro-parceiro-titulo"
       >
@@ -518,56 +551,22 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
             <h2 id="cadastro-parceiro-titulo">Cadastrar e Publicar Minha Empresa</h2>
             <p>
               Preencha seu nome, telefone, nome da empresa e envie as imagens que você quer que
-              apareçam na vitrine do site.
+              apareçam no site.
             </p>
           </div>
-          <span className={`status-tag ${canPost ? 'tag-unlocked' : 'tag-locked'}`}>
-            {canPost ? (
-              <>
-                <CheckCircle2 size={14} /> Acesso Liberado para Postar
-              </>
-            ) : (
-              <>
-                <Lock size={14} /> Bloqueado até pagamento da recorrência
-              </>
-            )}
-          </span>
+          {canPost && (
+            <span className="status-tag tag-unlocked">
+              <CheckCircle2 size={14} /> Assinatura Ativa
+            </span>
+          )}
         </div>
 
-        {!canPost && (
-          <div className="partner-locked-overlay-banner">
-            <Lock size={20} />
-            <div>
-              <strong>Acesso de postagem vinculado ao pagamento da recorrência</strong>
-              <p>
-                {!isSignedIn
-                  ? 'Faça login com sua conta Clerk e ative um plano no Mercado Pago acima para liberar a postagem.'
-                  : 'Escolha um plano acima e confirme o pagamento da recorrência no Mercado Pago para liberar a publicação.'}
-              </p>
-            </div>
-            {!isSignedIn ? (
-              <button type="button" className="button-primary button-sm" onClick={openLoginModal}>
-                Fazer Login
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="button-secondary button-sm"
-                disabled={paymentBusy}
-                onClick={() => handleConfirmSubscription(selectedPlanId)}
-              >
-                Liberar Postagem (Confirmar Recorrência)
-              </button>
-            )}
-          </div>
-        )}
-
         <form onSubmit={handleSavePartnerSubmit} className="partner-business-form">
-          <fieldset disabled={!canPost || savingProfile || sessionLoading} className="clean-fieldset">
+          <fieldset disabled={savingProfile} className="clean-fieldset">
             <div className="form-grid">
               <div>
                 <label htmlFor="responsavelNome">
-                  <UserCheck size={15} /> Seu nome completo (Parceiro)
+                  <UserCheck size={15} /> Seu nome completo
                 </label>
                 <input
                   id="responsavelNome"
@@ -593,7 +592,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
                   onChange={(e) => setTelefone(e.target.value)}
                 />
                 <p className="helper-text">
-                  Os clientes do site entrarão em contato diretamente por este WhatsApp.
+                  Os clientes entrarão em contato diretamente por este WhatsApp.
                 </p>
               </div>
 
@@ -657,7 +656,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
 
               <div className="field-full">
                 <label htmlFor="empresaDescricao">
-                  Descrição do que sua empresa oferece (aparece no card do site)
+                  Descrição do que sua empresa oferece
                 </label>
                 <textarea
                   id="empresaDescricao"
@@ -703,12 +702,12 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
                     <label htmlFor="uploadFotosParceiro" className="upload-trigger-label">
                       <Upload size={16} />{' '}
                       {uploadingImages
-                        ? 'Enviando imagens para o servidor Go...'
+                        ? 'Carregando imagens...'
                         : 'Clique para enviar fotos do seu negócio'}
                     </label>
                     <p className="helper-text">
                       Envie fotos da fachada, ambiente, pratos, quartos ou serviços ({imagens.length}/6
-                      enviadas).
+                      selecionadas).
                     </p>
                     <input
                       id="uploadFotosParceiro"
@@ -723,7 +722,7 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
                 {imagens.length > 0 && (
                   <div className="photo-list" aria-live="polite">
                     {imagens.map((url, idx) => (
-                      <div key={`${url}-${idx}`} className="photo-preview partner-photo-item">
+                      <div key={`${url.slice(0, 24)}-${idx}`} className="photo-preview partner-photo-item">
                         <img src={url} alt={`Foto do negócio ${idx + 1}`} />
                         <button
                           type="button"
@@ -747,97 +746,35 @@ export default function BusinessesView({ publicPartners = [], onPartnersUpdated 
             )}
 
             {profileFeedback && (
-              <div className="confirmation" role="status">
-                <CheckCircle2 size={18} /> {profileFeedback}
+              <div
+                className="confirmation"
+                role="status"
+                ref={successMessageRef}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontWeight: 800,
+                  fontSize: '16px',
+                  color: '#166534',
+                  background: '#dcfce7',
+                  border: '1px solid #86efac',
+                }}
+              >
+                <CheckCircle2 size={20} /> {profileFeedback}
               </div>
             )}
 
             <div className="button-row button-row-spaced">
-              <button type="submit" className="button-primary" disabled={!canPost || savingProfile}>
+              <button type="submit" className="button-primary" disabled={savingProfile}>
                 <Sparkles size={16} />{' '}
                 {savingProfile
-                  ? 'Publicando no Ubatuba Conecta...'
-                  : existingProfile
-                  ? 'Atualizar Dados e Imagens no Site'
-                  : 'Publicar Meu Negócio no Site'}
+                  ? 'Publicando...'
+                  : 'Publicar meu negócio no site ou aplicativo'}
               </button>
             </div>
           </fieldset>
         </form>
-      </section>
-
-      {/* Vitrine Pública de Parceiros Ativos */}
-      <section className="panel" aria-labelledby="vitrine-parceiros-titulo">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow eyebrow-accent">Vitrine Ao Vivo</p>
-            <h2 id="vitrine-parceiros-titulo">Parceiros Ativos no Ubatuba Conecta</h2>
-            <p>
-              Empresas com assinatura recorrente em dia aparecem automaticamente aqui e na página
-              inicial.
-            </p>
-          </div>
-          <span className="status-tag">{publicPartners.length} parceiro(s) ativo(s)</span>
-        </div>
-
-        {publicPartners.length === 0 ? (
-          <p className="helper-text">
-            Ainda não há parceiros publicados. Seja o primeiro a cadastrar sua empresa acima!
-          </p>
-        ) : (
-          <div className="listing-cards-grid">
-            {publicPartners.map((partner) => {
-              const cover =
-                partner.imagens?.[0] ||
-                partner.logoUrl ||
-                '/Imagens/logo_ubatuba_conecta_transparente.png';
-              return (
-                <article key={partner.id} className="uo-card uo-card-featured">
-                  <div className="uo-card-media">
-                    <img src={cover} alt={partner.empresaNome} loading="lazy" />
-                    <span className="uo-card-badge">Parceiro Oficial</span>
-                  </div>
-                  <div className="uo-card-body">
-                    <div className="uo-card-topline">
-                      <span className="status-tag">{partner.ramo}</span>
-                      <span className="partner-region-tag">{partner.regiao}</span>
-                    </div>
-                    <h3>{partner.empresaNome}</h3>
-                    {partner.endereco && (
-                      <p className="uo-card-location">
-                        <MapPin size={14} /> {partner.endereco}
-                      </p>
-                    )}
-                    <p className="uo-card-desc">{partner.descricao}</p>
-                    {partner.imagens?.length > 1 && (
-                      <div className="partner-card-thumbs">
-                        {partner.imagens.map((img, i) => (
-                          <img
-                            key={`${partner.id}-thumb-${i}`}
-                            src={img}
-                            alt={`${partner.empresaNome} ${i + 1}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <div className="uo-card-footer">
-                      <small className="partner-owner-label">
-                        Por: {partner.responsavelNome}
-                      </small>
-                      <button
-                        type="button"
-                        className="button-primary button-sm"
-                        onClick={() => handlePartnerWhatsAppClick(partner)}
-                      >
-                        <MessageCircle size={14} /> WhatsApp
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
       </section>
     </section>
   );

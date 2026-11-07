@@ -1,14 +1,13 @@
 import React from 'react';
-import { Home, Waves, CloudSun, Compass, Briefcase, Building2 } from 'lucide-react';
+import { Home, Waves, CloudSun, Briefcase, Building2 } from 'lucide-react';
 
 export default function MobileNav({ activeView, onNavigate }) {
   const items = [
     { id: 'inicio', label: 'Início', icon: Home },
     { id: 'praias', label: 'Praias', icon: Waves },
     { id: 'cidade', label: 'Clima', icon: CloudSun },
-    { id: 'explorar', label: 'Explorar', icon: Compass },
     { id: 'vagas', label: 'Vagas', icon: Briefcase },
-    { id: 'empresas', label: 'Empresas', icon: Building2 },
+    { id: 'empresas', label: 'Área do Parceiro', icon: Building2 },
   ];
 
   return (

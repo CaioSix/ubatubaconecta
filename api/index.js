@@ -9,7 +9,7 @@ const TMP_STORE_PATH = path.join(os.tmpdir(), 'ubatuba-store.json');
 const AVAILABLE_PLANS = [
   {
     id: 'semanal',
-    nome: 'Semanal',
+    nome: 'Plano Semanal',
     periodo: '7 dias',
     duracaoDias: 7,
     avisoDias: 3,
@@ -21,19 +21,19 @@ const AVAILABLE_PLANS = [
   },
   {
     id: 'mensal',
-    nome: 'Mensal Recorrente',
+    nome: 'Plano Mensal',
     periodo: '30 dias',
     duracaoDias: 30,
     avisoDias: 3,
     preco: 49.99,
-    descricao: 'Assinatura mensal com renovação recorrente e destaque contínuo para turistas e moradores.',
+    descricao: 'Destaque contínuo durante o mês inteiro para turistas e moradores.',
     recommended: true,
     frequenciaTipo: 'months',
     frequenciaVal: 1,
   },
   {
     id: 'anual',
-    nome: 'Anual Recorrente',
+    nome: 'Plano Anual',
     periodo: '365 dias',
     duracaoDias: 365,
     avisoDias: 3,

@@ -179,7 +179,11 @@ export default function App() {
                 <span className="shortcut-icon" aria-hidden="true">
                   ★
                 </span>
-                <strong>Seja Parceiro (Divulgar Negócio)</strong>
+                <strong>
+                  Seja um Parceiro
+                  <br />
+                  <small style={{ fontWeight: 600, opacity: 0.85 }}>(Divulgue sua Empresa)</small>
+                </strong>
               </button>
               <button
                 type="button"
@@ -204,32 +208,12 @@ export default function App() {
               <button
                 type="button"
                 className="shortcut"
-                onClick={() => handleNavigate('explorar')}
-              >
-                <span className="shortcut-icon" aria-hidden="true">
-                  ◎
-                </span>
-                <strong>Onde Ficar e O que Fazer</strong>
-              </button>
-              <button
-                type="button"
-                className="shortcut"
                 onClick={() => handleNavigate('vagas')}
               >
                 <span className="shortcut-icon" aria-hidden="true">
                   ↗
                 </span>
                 <strong>Vagas de Emprego</strong>
-              </button>
-              <button
-                type="button"
-                className="shortcut"
-                onClick={() => handleNavigate('empresas')}
-              >
-                <span className="shortcut-icon" aria-hidden="true">
-                  ＋
-                </span>
-                <strong>Área do Parceiro</strong>
               </button>
             </div>
 
@@ -251,7 +235,7 @@ export default function App() {
               weather={weather}
             />
 
-            {/* Onde Ficar, O que Fazer, Parceiros e Artigos / Guia Local */}
+            {/* Parceiros em Destaque e Artigos / Guia Local */}
             <ExploreDirectorySection
               itineraryItems={itineraryItems}
               onToggleItinerary={handleToggleItinerary}
@@ -281,23 +265,6 @@ export default function App() {
             onRefreshWeather={loadWeather}
             onNavigate={handleNavigate}
           />
-        )}
-
-        {activeView === 'explorar' && (
-          <section id="view-explorar" className="app-view active">
-            <p className="eyebrow eyebrow-accent">Guia Turístico e Comercial</p>
-            <h1 className="page-title">Onde Ficar, O que Fazer e Dicas de Ubatuba</h1>
-            <p className="page-intro">
-              Encontre empresas parceiras, hospedagens, passeios, restaurantes e informações
-              essenciais sobre Zona Azul, Taxa de Preservação Ambiental (TPA) e pedágio Free Flow.
-            </p>
-            <ExploreDirectorySection
-              itineraryItems={itineraryItems}
-              onToggleItinerary={handleToggleItinerary}
-              onNavigate={handleNavigate}
-              publicPartners={publicPartners}
-            />
-          </section>
         )}
 
         {activeView === 'vagas' && <JobsView />}

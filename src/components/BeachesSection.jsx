@@ -8,7 +8,6 @@ const PROFILE_FILTERS = [
   { id: 'surf', label: 'Surf & Ondas' },
   { id: 'natureza', label: 'Natureza & Preservadas' },
   { id: 'ilha-cachoeira', label: 'Ilhas & Cachoeiras' },
-  { id: 'estrutura', label: 'Quiosques & Estrutura' },
 ];
 
 export default function BeachesSection({
