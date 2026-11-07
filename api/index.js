@@ -6,6 +6,142 @@ const WARNING_THRESHOLD_DAYS = 3;
 const KV_STORE_KEY = 'ubatuba_conecta_store_v1';
 const TMP_STORE_PATH = path.join(os.tmpdir(), 'ubatuba-store.json');
 
+const NEWS_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000; // 5 dias: notícias mais antigas somem sozinhas
+const MAX_NEWS_ITEMS = 6;
+let memoryNewsCache = { fetchedAt: 0, items: [] };
+
+function decodeHtmlEntities(str = '') {
+  return String(str)
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#8211;|&ndash;/g, '–')
+    .replace(/&#8212;|&mdash;/g, '—')
+    .replace(/&#8216;|&#8217;/g, "'")
+    .replace(/&#8220;|&#8221;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseRssXml(xmlText, defaultSource) {
+  const items = [];
+  const itemRegex = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+  let match;
+  const now = Date.now();
+
+  while ((match = itemRegex.exec(xmlText)) !== null) {
+    const block = match[1];
+    const titleMatch = block.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const linkMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+    const pubDateMatch = block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i);
+    const sourceMatch = block.match(/<source[^>]*>([\s\S]*?)<\/source>/i);
+    const descMatch = block.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+
+    let title = decodeHtmlEntities(titleMatch ? titleMatch[1] : '');
+    const link = decodeHtmlEntities(linkMatch ? linkMatch[1] : '');
+    const rawDate = pubDateMatch ? decodeHtmlEntities(pubDateMatch[1]) : '';
+    let source = decodeHtmlEntities(sourceMatch ? sourceMatch[1] : defaultSource);
+
+    if (!title || !link) continue;
+
+    // Se o título vier no formato "Manchete - Fonte", separa a fonte
+    const dashIdx = title.lastIndexOf(' - ');
+    if (dashIdx > 20 && (!sourceMatch || source === defaultSource)) {
+      source = title.slice(dashIdx + 3).trim();
+      title = title.slice(0, dashIdx).trim();
+    }
+
+    const pubTime = rawDate ? new Date(rawDate).getTime() : now;
+    if (!Number.isFinite(pubTime)) continue;
+
+    // Ignora notícias com mais de 5 dias para não acumular nem sobrecarregar o site
+    if (now - pubTime > NEWS_MAX_AGE_MS) continue;
+
+    let summary = decodeHtmlEntities(descMatch ? descMatch[1] : '');
+    if (summary === title || summary.startsWith(title.slice(0, 30))) {
+      summary = '';
+    }
+    if (summary.length > 180) {
+      summary = `${summary.slice(0, 177).trim()}...`;
+    }
+
+    items.push({
+      id: `news-${Buffer.from(link).toString('base64').slice(0, 16)}`,
+      title,
+      url: link,
+      source: source || defaultSource,
+      summary,
+      publishedAt: new Date(pubTime).toISOString(),
+    });
+  }
+
+  return items;
+}
+
+async function getDynamicUbatubaNews() {
+  const now = Date.now();
+  // Mantém em memória por 15 minutos e sempre limpa itens vencidos (> 5 dias)
+  if (memoryNewsCache.items.length > 0 && now - memoryNewsCache.fetchedAt < 15 * 60 * 1000) {
+    return memoryNewsCache.items.filter(
+      (i) => now - new Date(i.publishedAt).getTime() <= NEWS_MAX_AGE_MS
+    );
+  }
+
+  const feeds = [
+    {
+      url: 'https://news.google.com/rss/search?q=Ubatuba+SP+when:5d&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      source: 'Notícias de Ubatuba',
+    },
+    {
+      url: 'https://www.ubatuba.sp.gov.br/feed/',
+      source: 'Prefeitura de Ubatuba',
+    },
+  ];
+
+  const collected = [];
+  await Promise.allSettled(
+    feeds.map(async (f) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4500);
+      try {
+        const res = await fetch(f.url, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'UbatubaConectaBot/1.0 (+https://ubatubaconecta.com.br)' },
+        });
+        if (res.ok) {
+          const xml = await res.text();
+          collected.push(...parseRssXml(xml, f.source));
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    })
+  );
+
+  // Remove duplicados por título semelhante e limita às 6 mais recentes (<= 5 dias)
+  const seenTitles = new Set();
+  const deduped = collected
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .filter((item) => {
+      const key = item.title.toLowerCase().slice(0, 45);
+      if (seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    })
+    .slice(0, MAX_NEWS_ITEMS);
+
+  memoryNewsCache = {
+    fetchedAt: now,
+    items: deduped,
+  };
+
+  return deduped;
+}
+
 const AVAILABLE_PLANS = [
   {
     id: 'semanal',
@@ -295,6 +431,17 @@ export default async function handler(req, res) {
     return res.status(200).json({
       status: 'ok',
       service: 'ubatuba-conecta-vercel-serverless-api',
+    });
+  }
+
+  // 1.5 GET /api/news (Notícias dinâmicas de Ubatuba com expiração automática em 5 dias)
+  if (req.method === 'GET' && pathname === '/api/news') {
+    const items = await getDynamicUbatubaNews();
+    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
+    return res.status(200).json({
+      items,
+      maxAgeDays: 5,
+      updatedAt: new Date().toISOString(),
     });
   }
 

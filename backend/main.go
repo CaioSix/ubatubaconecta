@@ -63,11 +63,12 @@ func main() {
 	api := handlers.NewAPIHandler(st, uploadDir)
 	mux := http.NewServeMux()
 
-	// Health check
+	// Health check & Live News (Auto-expiring after 5 days)
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok","service":"ubatuba-conecta-go-api"}`))
 	})
+	mux.HandleFunc("GET /api/news", api.GetLiveNews)
 
 	// Clerk User + Partner + Subscription + 3-Day Expiration Check
 	mux.HandleFunc("GET /api/me/partner", api.GetMePartner)

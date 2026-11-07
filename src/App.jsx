@@ -13,6 +13,7 @@ import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
 import { fetchUbatubaWeatherAndMarine } from './services/weatherApi';
 import { fetchPublicPartners } from './services/partnerApi';
+import { fetchUbatubaNews } from './services/newsApi';
 import { usePartnerAuth } from './context/AuthContext';
 
 const ITINERARY_STORAGE_KEY = 'ubatuba-conecta-roteiro-v1';
@@ -24,6 +25,9 @@ export default function App() {
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState('');
+
+  const [liveNews, setLiveNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   const [publicPartners, setPublicPartners] = useState([]);
   const { isSignedIn, partnerSession } = usePartnerAuth();
@@ -61,10 +65,23 @@ export default function App() {
     }
   }, []);
 
+  const loadNews = useCallback(async (forceRefresh = false) => {
+    setNewsLoading(true);
+    try {
+      const items = await fetchUbatubaNews({ forceRefresh });
+      setLiveNews(items);
+    } catch {
+      setLiveNews([]);
+    } finally {
+      setNewsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadWeather();
     loadPublicPartners();
-  }, [loadWeather, loadPublicPartners]);
+    loadNews();
+  }, [loadWeather, loadPublicPartners, loadNews]);
 
   useEffect(() => {
     try {
@@ -217,12 +234,17 @@ export default function App() {
               </button>
             </div>
 
-            {/* Painel Situação Atual em Ubatuba (Clima, Ondas, Câmeras, Eventos, Emergência) */}
+            {/* Painel Situação Atual em Ubatuba (Clima, Ondas, Câmeras, Notícias Dinâmicas, Emergência) */}
             <CityStatusSection
               weather={weather}
               weatherLoading={weatherLoading}
               weatherError={weatherError}
-              onRefreshWeather={loadWeather}
+              onRefreshWeather={() => {
+                loadWeather();
+                loadNews(true);
+              }}
+              liveNews={liveNews}
+              newsLoading={newsLoading}
               onNavigate={handleNavigate}
             />
 
@@ -262,7 +284,12 @@ export default function App() {
             weather={weather}
             weatherLoading={weatherLoading}
             weatherError={weatherError}
-            onRefreshWeather={loadWeather}
+            onRefreshWeather={() => {
+              loadWeather();
+              loadNews(true);
+            }}
+            liveNews={liveNews}
+            newsLoading={newsLoading}
             onNavigate={handleNavigate}
           />
         )}

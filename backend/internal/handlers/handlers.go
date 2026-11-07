@@ -3,13 +3,17 @@ package handlers
 import (
 	"encoding/base64"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"ubatuba-conecta-backend/internal/auth"
@@ -18,7 +22,34 @@ import (
 	"ubatuba-conecta-backend/internal/store"
 )
 
-var nonDigitsRegex = regexp.MustCompile(`\D+`)
+var (
+	nonDigitsRegex = regexp.MustCompile(`\D+`)
+	htmlTagRegex   = regexp.MustCompile(`<[^>]+>`)
+	newsCacheMu    sync.Mutex
+	newsCachedAt   time.Time
+	newsCacheItems []LiveNewsItem
+)
+
+type LiveNewsItem struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	URL         string `json:"url"`
+	Source      string `json:"source"`
+	Summary     string `json:"summary"`
+	PublishedAt string `json:"publishedAt"`
+}
+
+type rssFeed struct {
+	Channel struct {
+		Items []struct {
+			Title       string `xml:"title"`
+			Link        string `xml:"link"`
+			PubDate     string `xml:"pubDate"`
+			Description string `xml:"description"`
+			Source      string `xml:"source"`
+		} `xml:"item"`
+	} `xml:"channel"`
+}
 
 type APIHandler struct {
 	Store     *store.Store
@@ -507,4 +538,169 @@ func (h *APIHandler) RegisterPartnerClick(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"partner": updated})
+}
+
+func cleanHTMLText(raw string) string {
+	stripped := htmlTagRegex.ReplaceAllString(raw, " ")
+	unescaped := html.UnescapeString(stripped)
+	return strings.Join(strings.Fields(unescaped), " ")
+}
+
+func parseRSSDate(raw string) time.Time {
+	layouts := []string{
+		time.RFC1123Z,
+		time.RFC1123,
+		time.RFC822Z,
+		time.RFC822,
+		time.RFC3339,
+		"Mon, 2 Jan 2006 15:04:05 -0700",
+		"Mon, 2 Jan 2006 15:04:05 MST",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, strings.TrimSpace(raw)); err == nil {
+			return t
+		}
+	}
+	return time.Now()
+}
+
+// GetLiveNews fetches live Ubatuba news and automatically discards items older than 5 days so the site is never overloaded.
+func (h *APIHandler) GetLiveNews(w http.ResponseWriter, r *http.Request) {
+	const maxAge = 5 * 24 * time.Hour
+	const maxItems = 6
+
+	newsCacheMu.Lock()
+	if len(newsCacheItems) > 0 && time.Since(newsCachedAt) < 15*time.Minute {
+		var valid []LiveNewsItem
+		now := time.Now()
+		for _, item := range newsCacheItems {
+			if t, err := time.Parse(time.RFC3339, item.PublishedAt); err == nil && now.Sub(t) <= maxAge {
+				valid = append(valid, item)
+			}
+		}
+		newsCacheMu.Unlock()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"items":      valid,
+			"maxAgeDays": 5,
+			"updatedAt":  now.Format(time.RFC3339),
+		})
+		return
+	}
+	newsCacheMu.Unlock()
+
+	feeds := []struct {
+		URL    string
+		Source string
+	}{
+		{
+			URL:    "https://news.google.com/rss/search?q=Ubatuba+SP+when:5d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+			Source: "Notícias de Ubatuba",
+		},
+		{
+			URL:    "https://www.ubatuba.sp.gov.br/feed/",
+			Source: "Prefeitura de Ubatuba",
+		},
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	now := time.Now()
+	var collected []LiveNewsItem
+
+	for _, f := range feeds {
+		reqHTTP, err := http.NewRequest("GET", f.URL, nil)
+		if err != nil {
+			continue
+		}
+		reqHTTP.Header.Set("User-Agent", "UbatubaConectaBot/1.0")
+		resp, err := client.Do(reqHTTP)
+		if err != nil {
+			continue
+		}
+		data, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			continue
+		}
+
+		var parsed rssFeed
+		if err := xml.Unmarshal(data, &parsed); err != nil {
+			continue
+		}
+
+		for _, entry := range parsed.Channel.Items {
+			title := cleanHTMLText(entry.Title)
+			link := strings.TrimSpace(entry.Link)
+			if title == "" || link == "" {
+				continue
+			}
+
+			pubTime := parseRSSDate(entry.PubDate)
+			if now.Sub(pubTime) > maxAge {
+				continue
+			}
+
+			source := cleanHTMLText(entry.Source)
+			if idx := strings.LastIndex(title, " - "); idx > 20 && source == "" {
+				source = strings.TrimSpace(title[idx+3:])
+				title = strings.TrimSpace(title[:idx])
+			}
+			if source == "" {
+				source = f.Source
+			}
+
+			summary := cleanHTMLText(entry.Description)
+			if summary == title || (len(title) > 25 && strings.HasPrefix(summary, title[:25])) {
+				summary = ""
+			}
+			if len(summary) > 180 {
+				summary = summary[:177] + "..."
+			}
+
+			id := "news-" + base64.RawURLEncoding.EncodeToString([]byte(link))
+			if len(id) > 22 {
+				id = id[:22]
+			}
+
+			collected = append(collected, LiveNewsItem{
+				ID:          id,
+				Title:       title,
+				URL:         link,
+				Source:      source,
+				Summary:     summary,
+				PublishedAt: pubTime.UTC().Format(time.RFC3339),
+			})
+		}
+	}
+
+	sort.Slice(collected, func(i, j int) bool {
+		return collected[i].PublishedAt > collected[j].PublishedAt
+	})
+
+	seen := make(map[string]bool)
+	var deduped []LiveNewsItem
+	for _, item := range collected {
+		key := strings.ToLower(item.Title)
+		if len(key) > 45 {
+			key = key[:45]
+		}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		deduped = append(deduped, item)
+		if len(deduped) >= maxItems {
+			break
+		}
+	}
+
+	newsCacheMu.Lock()
+	newsCachedAt = now
+	newsCacheItems = deduped
+	newsCacheMu.Unlock()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"items":      deduped,
+		"maxAgeDays": 5,
+		"updatedAt":  now.Format(time.RFC3339),
+	})
 }

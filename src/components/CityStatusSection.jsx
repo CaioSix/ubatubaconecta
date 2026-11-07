@@ -32,6 +32,8 @@ export default function CityStatusSection({
   weatherLoading,
   weatherError,
   onRefreshWeather,
+  liveNews = [],
+  newsLoading = false,
   onNavigate,
 }) {
   const [showMeteoredWidget, setShowMeteoredWidget] = useState(false);
@@ -157,26 +159,50 @@ export default function CityStatusSection({
         {/* Card 2: Trânsito e Câmeras Ao Vivo */}
         <LiveTrafficCamera />
 
-        {/* Card 3: Próximos Eventos e Agenda */}
+        {/* Card 3: Notícias Recentes & Agenda de Ubatuba (expiração automática em 5 dias) */}
         <article className="status-card status-card-events">
           <div className="status-card-head">
             <div>
-              <span className="status-tag">Agenda Cultural</span>
-              <h3>Próximos Eventos</h3>
+              <span className="status-tag">Notícias Dinâmicas · Ubatuba</span>
+              <h3>Últimas Notícias e Agenda</h3>
             </div>
             <Calendar size={18} className="muted-icon" />
           </div>
 
-          <ul className="events-mini-list">
-            {UPCOMING_EVENTS.map((evt) => (
-              <li key={evt.id} className="event-mini-item">
-                <span className="event-mini-badge">{evt.category}</span>
-                <strong>{evt.title}</strong>
-                <span>{evt.date}</span>
-                <small>📍 {evt.location}</small>
-              </li>
-            ))}
-          </ul>
+          {liveNews.length > 0 ? (
+            <ul className="events-mini-list">
+              {liveNews.slice(0, 3).map((news) => (
+                <li key={news.id} className="event-mini-item">
+                  <span className="event-mini-badge">
+                    {news.source} · {news.timeAgoLabel}
+                  </span>
+                  <a
+                    href={news.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', textDecoration: 'none' }}
+                  >
+                    <strong>
+                      {news.title} <ExternalLink size={12} style={{ verticalAlign: 'middle' }} />
+                    </strong>
+                  </a>
+                  {news.summary && <span>{news.summary}</span>}
+                  <small>⏱ Remove automaticamente em {news.expiresInDays} dia(s)</small>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="events-mini-list">
+              {UPCOMING_EVENTS.map((evt) => (
+                <li key={evt.id} className="event-mini-item">
+                  <span className="event-mini-badge">{evt.category}</span>
+                  <strong>{evt.title}</strong>
+                  <span>{evt.date}</span>
+                  <small>📍 {evt.location}</small>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="status-card-footer">
             <button
@@ -184,8 +210,11 @@ export default function CityStatusSection({
               className="button-secondary button-sm"
               onClick={() => onNavigate('cidade')}
             >
-              Ver agenda e notícias de Ubatuba
+              Ver todas as notícias de Ubatuba
             </button>
+            <span className="api-credit">
+              {newsLoading ? 'Atualizando...' : 'Limpeza automática: 5 dias'}
+            </span>
           </div>
         </article>
 

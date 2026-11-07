@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 import CityStatusSection from './CityStatusSection';
 
 const CITY_FILTERS = [
@@ -14,6 +15,8 @@ export default function CityView({
   weatherLoading,
   weatherError,
   onRefreshWeather,
+  liveNews = [],
+  newsLoading = false,
   onNavigate,
 }) {
   const [activeFilter, setActiveFilter] = useState('todos');
@@ -34,12 +37,14 @@ export default function CityView({
         horário da última atualização.
       </p>
 
-      {/* Painel Ao Vivo: Clima, Câmeras, Agenda e Emergência */}
+      {/* Painel Ao Vivo: Clima, Câmeras, Notícias Dinâmicas e Emergência */}
       <CityStatusSection
         weather={weather}
         weatherLoading={weatherLoading}
         weatherError={weatherError}
         onRefreshWeather={onRefreshWeather}
+        liveNews={liveNews}
+        newsLoading={newsLoading}
         onNavigate={onNavigate}
       />
 
@@ -156,7 +161,30 @@ export default function CityView({
           </article>
         )}
 
-        {shouldShow('agenda') && (
+        {shouldShow('agenda') &&
+          liveNews.map((news) => (
+            <article key={news.id} className="city-card" data-category="agenda">
+              <span className="status-tag">
+                {news.source} · {news.timeAgoLabel}
+              </span>
+              <h2>{news.title}</h2>
+              {news.summary && <p>{news.summary}</p>}
+              <a
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button-secondary button-sm"
+                style={{ alignSelf: 'flex-start', textDecoration: 'none' }}
+              >
+                Ler notícia completa <ExternalLink size={14} />
+              </a>
+              <p className="source-line">
+                Notícia dinâmica · Expira automaticamente em {news.expiresInDays} dia(s)
+              </p>
+            </article>
+          ))}
+
+        {shouldShow('agenda') && liveNews.length === 0 && (
           <article className="city-card" data-category="agenda">
             <span className="status-tag">Notícias</span>
             <h2>A cidade em pauta</h2>
@@ -164,7 +192,11 @@ export default function CityView({
               Acompanhe comunicados da Defesa Civil (SMS 40199), condições das serras Oswaldo Cruz
               (SP-125) e Tamoios/Rio-Santos (BR-101) e novidades para moradores e turistas.
             </p>
-            <p className="source-line">Atualização editorial com fonte identificada</p>
+            <p className="source-line">
+              {newsLoading
+                ? 'Carregando notícias recentes de Ubatuba...'
+                : 'Notícias com mais de 5 dias são removidas automaticamente'}
+            </p>
           </article>
         )}
 
