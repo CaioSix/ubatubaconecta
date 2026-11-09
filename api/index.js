@@ -13,16 +13,19 @@ let memoryNewsCache = { fetchedAt: 0, items: [] };
 function decodeHtmlEntities(str = '') {
   return String(str)
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#8211;|&ndash;/g, '–')
-    .replace(/&#8212;|&mdash;/g, '—')
-    .replace(/&#8216;|&#8217;/g, "'")
-    .replace(/&#8220;|&#8221;/g, '"')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&#8211;|&ndash;/gi, '–')
+    .replace(/&#8212;|&mdash;/gi, '—')
+    .replace(/&#8216;|&#8217;/gi, "'")
+    .replace(/&#8220;|&#8221;/gi, '"')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/<[a-zA-Z][^>]*$/g, ' ')
+    .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -42,16 +45,21 @@ function parseRssXml(xmlText, defaultSource) {
     const descMatch = block.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
 
     let title = decodeHtmlEntities(titleMatch ? titleMatch[1] : '');
-    const link = decodeHtmlEntities(linkMatch ? linkMatch[1] : '');
+    const link = String(linkMatch ? linkMatch[1] : '')
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+      .trim();
     const rawDate = pubDateMatch ? decodeHtmlEntities(pubDateMatch[1]) : '';
     let source = decodeHtmlEntities(sourceMatch ? sourceMatch[1] : defaultSource);
 
     if (!title || !link) continue;
 
-    // Se o título vier no formato "Manchete - Fonte", separa a fonte
+    // Se o título vier no formato "Manchete - Fonte", remove o sufixo da fonte
     const dashIdx = title.lastIndexOf(' - ');
-    if (dashIdx > 20 && (!sourceMatch || source === defaultSource)) {
-      source = title.slice(dashIdx + 3).trim();
+    if (dashIdx > 15) {
+      const trailingSource = title.slice(dashIdx + 3).trim();
+      if (!sourceMatch || source === defaultSource) {
+        source = trailingSource;
+      }
       title = title.slice(0, dashIdx).trim();
     }
 
@@ -62,11 +70,23 @@ function parseRssXml(xmlText, defaultSource) {
     if (now - pubTime > NEWS_MAX_AGE_MS) continue;
 
     let summary = decodeHtmlEntities(descMatch ? descMatch[1] : '');
-    if (summary === title || summary.startsWith(title.slice(0, 30))) {
+    // No Google News RSS, a description é apenas repetição do título + nome do veículo
+    const normSummary = summary.toLowerCase();
+    const normTitle = title.toLowerCase();
+    if (
+      !summary ||
+      normSummary === normTitle ||
+      normSummary.startsWith(normTitle.slice(0, 25)) ||
+      normTitle.startsWith(normSummary.slice(0, 25))
+    ) {
       summary = '';
+    } else if (source && normSummary.endsWith(source.toLowerCase())) {
+      summary = summary.slice(0, summary.length - source.length).replace(/[-–—\s]+$/, '').trim();
+      if (summary.toLowerCase() === normTitle) summary = '';
     }
-    if (summary.length > 180) {
-      summary = `${summary.slice(0, 177).trim()}...`;
+
+    if (summary.length > 160) {
+      summary = `${summary.slice(0, 157).trim()}...`;
     }
 
     items.push({

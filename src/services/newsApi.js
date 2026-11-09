@@ -1,9 +1,24 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const NEWS_CACHE_KEY = 'ubatuba-conecta-live-news-v1';
+const NEWS_CACHE_KEY = 'ubatuba-conecta-live-news-v2';
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos de cache no navegador
 export const NEWS_MAX_AGE_DAYS = 5; // Notícias com mais de 5 dias somem automaticamente
 const NEWS_MAX_AGE_MS = NEWS_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 const MAX_NEWS_ITEMS = 6;
+
+function sanitizeNewsText(text = '') {
+  return String(text || '')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/<[a-zA-Z][^>]*$/g, ' ')
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 function filterAndLimitNews(items = []) {
   const now = Date.now();
@@ -32,8 +47,26 @@ function filterAndLimitNews(items = []) {
         const days = Math.floor(ageHours / 24);
         timeAgoLabel = days === 1 ? 'Ontem' : `Há ${days} dias`;
       }
+
+      let cleanTitle = sanitizeNewsText(item.title);
+      const dashIdx = cleanTitle.lastIndexOf(' - ');
+      if (dashIdx > 15) {
+        cleanTitle = cleanTitle.slice(0, dashIdx).trim();
+      }
+
+      let cleanSummary = sanitizeNewsText(item.summary);
+      if (
+        !cleanSummary ||
+        cleanSummary.toLowerCase() === cleanTitle.toLowerCase() ||
+        cleanSummary.toLowerCase().startsWith(cleanTitle.toLowerCase().slice(0, 25))
+      ) {
+        cleanSummary = '';
+      }
+
       return {
         ...item,
+        title: cleanTitle || item.title,
+        summary: cleanSummary,
         timeAgoLabel,
         expiresInDays: remainingDays,
       };

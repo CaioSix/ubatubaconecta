@@ -908,6 +908,9 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #f9fbfc;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .event-mini-badge {
@@ -922,6 +925,7 @@ h3 {
 .event-mini-item strong {
   display: block;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .event-mini-item span {
@@ -929,6 +933,7 @@ h3 {
   font-size: 12px;
   color: var(--ink);
   margin-top: 2px;
+  overflow-wrap: anywhere;
 }
 
 .event-mini-item small {
