@@ -98,7 +98,8 @@ export default function Header({
             aria-label={`Meu Roteiro com ${itineraryCount} itens`}
           >
             <Compass size={16} />
-            <span>Meu Roteiro</span>
+            <span className="header-action-text-full">Meu Roteiro</span>
+            <span className="header-action-text-short">Roteiro</span>
             {itineraryCount > 0 && <strong className="itinerary-count">{itineraryCount}</strong>}
           </button>
 
@@ -116,7 +117,8 @@ export default function Header({
             }
           >
             {hasExpirationAlert ? <AlertTriangle size={16} /> : <Building2 size={16} />}
-            <span>Área do Parceiro</span>
+            <span className="header-action-text-full">Área do Parceiro</span>
+            <span className="header-action-text-short">Parceiro</span>
             {sub?.expiringSoon && (
               <strong className="partner-exp-badge">{sub.daysRemaining}d</strong>
             )}

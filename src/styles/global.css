@@ -20,11 +20,20 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root,
+.app-shell {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   font-family: 'DM Sans', 'Trebuchet MS', sans-serif;
+  -webkit-text-size-adjust: 100%;
 }
 
 button,
@@ -184,6 +193,14 @@ button {
 
 .itinerary-trigger:hover {
   background: var(--green);
+}
+
+.header-action-text-full {
+  display: inline;
+}
+
+.header-action-text-short {
+  display: none;
 }
 
 .itinerary-count {
@@ -3364,18 +3381,476 @@ button:focus-visible {
   }
 }
 
+/* ==========================================================================
+   Mobile & Small Screen Responsiveness Fixes (<= 780px & <= 480px)
+   ========================================================================== */
+
+.shortcut,
+.city-card,
+.plan-card,
+.panel,
+.service-card,
+.status-card,
+.beach-card,
+.uo-card,
+.article-card,
+.job-card,
+.founder-card,
+.about-pillar-card,
+.about-stat-item {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.payment-option input {
+  flex-shrink: 0;
+}
+
+@media (max-width: 780px) {
+  /* Topbar / Header */
+  .topbar {
+    min-height: 60px;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+  }
+
+  .brand-text strong {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .header-action-text-full {
+    display: none;
+  }
+
+  .header-action-text-short {
+    display: inline;
+  }
+
+  .weather-pill,
+  .itinerary-trigger,
+  .partner-auth-pill {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  /* Hero & Planner */
+  .welcome-copy {
+    padding: 20px 18px;
+  }
+
+  .welcome-copy h1 {
+    font-size: 24px;
+    line-height: 1.18;
+  }
+
+  .welcome-copy p:last-of-type {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .welcome-copy .button-row {
+    width: 100%;
+  }
+
+  .welcome-copy .button-row button {
+    flex: 1 1 auto;
+  }
+
+  .planner-card {
+    padding: 18px 16px;
+  }
+
+  .planner-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .planner-avatar {
+    flex-shrink: 0;
+  }
+
+  .planner-form button {
+    width: 100%;
+  }
+
+  .planner-chips {
+    gap: 6px;
+  }
+
+  .planner-chip {
+    font-size: 12px;
+    padding: 6px 11px;
+  }
+
+  .planner-response {
+    padding: 14px;
+  }
+
+  .planner-response-head {
+    flex-wrap: wrap;
+  }
+
+  .planner-mini-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-mini-card {
+    flex-wrap: wrap;
+  }
+
+  /* Status Hub, Weather & Camera */
+  .status-card {
+    padding: 16px;
+  }
+
+  .status-card-head {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .traffic-stamp {
+    white-space: normal;
+    font-size: 11px;
+  }
+
+  .status-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .status-card-footer button {
+    width: 100%;
+  }
+
+  .status-card-footer .api-credit {
+    text-align: center;
+  }
+
+  .camera-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .camera-controls button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .camera-play-btn {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .emergency-link {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Beaches & Filters */
+  .beaches-sort-wrap,
+  .sort-select,
+  .beaches-extra-filters,
+  .beach-search-box,
+  .beach-search-box input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .region-tabs,
+  .profile-chips,
+  .city-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .region-tabs::-webkit-scrollbar,
+  .profile-chips::-webkit-scrollbar,
+  .city-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .region-tabs .filter-button,
+  .profile-chips .chip-button,
+  .city-toolbar .filter-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .beach-card-media {
+    height: 210px;
+  }
+
+  .beach-card-badges {
+    flex-wrap: wrap;
+  }
+
+  .beach-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .beach-card-actions button {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .section-more-row button {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 16px 16px 12px 12px;
+  }
+
+  .modal-media {
+    height: 190px;
+  }
+
+  .modal-body {
+    padding: 18px 16px;
+  }
+
+  .modal-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions button,
+  .modal-actions a {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .itinerary-modal-head {
+    padding: 16px;
+  }
+
+  /* Partner Portal & Forms */
+  .panel,
+  .service-card,
+  .city-card,
+  .job-card,
+  .plan-card {
+    padding: 18px 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .partner-auth-bar,
+  .partner-expiration-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .partner-auth-info {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .partner-auth-info > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .partner-expiration-copy {
+    min-width: 0;
+  }
+
+  .partner-auth-actions,
+  .sim-buttons-group,
+  .mp-checkout-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .partner-auth-actions button,
+  .sim-buttons-group button,
+  .mp-checkout-actions button,
+  .mp-checkout-actions a,
+  .partner-expiration-banner button {
+    width: 100%;
+  }
+
+  .photo-list,
+  .listing-gallery {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .job-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .job-actions a,
+  .job-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Mobile Bottom Nav */
+  .mobile-nav .nav-button {
+    min-width: 0;
+    padding: 6px 2px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 640px) {
   .about-hero-card {
-    padding: 24px 20px;
+    padding: 22px 18px;
   }
+
+  .about-hero-title {
+    font-size: 23px;
+  }
+
+  .about-hero-subtitle {
+    font-size: 14.5px;
+    margin-bottom: 18px;
+  }
+
   .about-stats-grid,
   .about-pillars-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
+
   .founder-card {
-    padding: 20px;
+    padding: 18px 16px;
   }
+
   .founder-card-header {
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .founder-name {
+    font-size: 19px;
+  }
+
+  .founder-actions,
+  .about-cta-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .founder-btn,
+  .about-cta-buttons .btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .about-cta-banner {
+    padding: 20px 18px;
+  }
+
+  .about-cta-content h2 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Hide partner pill in topbar on narrow phones since it is in the bottom MobileNav */
+  .topbar .partner-auth-pill {
+    display: none;
+  }
+
+  .weather-main-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .weather-temp-big {
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: 10px;
+    border-right: 0;
+    border-bottom: 1px solid #ffffff30;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .weather-forecast-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .weather-forecast-strip .forecast-day-item:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .forecast-7d-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-list,
+  .listing-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-quick-links {
+    grid-template-columns: 1fr;
+  }
+
+  .download-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .store-link {
+    width: 100%;
   }
 }
