@@ -8,6 +8,7 @@ import ExploreDirectorySection from './components/ExploreDirectorySection';
 import CityView from './components/CityView';
 import JobsView from './components/JobsView';
 import BusinessesView from './components/BusinessesView';
+import AboutView from './components/AboutView';
 import ItineraryModal from './components/ItineraryModal';
 import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
@@ -301,6 +302,12 @@ export default function App() {
             publicPartners={publicPartners}
             onPartnersUpdated={loadPublicPartners}
           />
+        )}
+
+        {activeView === 'quem-somos' && (
+          <section id="view-quem-somos" className="app-view active" aria-label="Quem Somos">
+            <AboutView onNavigate={handleNavigate} />
+          </section>
         )}
       </main>
 

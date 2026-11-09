@@ -9,6 +9,7 @@ import {
   Waves,
   Home,
   AlertTriangle,
+  Users,
 } from 'lucide-react';
 import { usePartnerAuth } from '../context/AuthContext';
 
@@ -28,6 +29,7 @@ export default function Header({
     { id: 'praias', label: 'Praias', icon: Waves },
     { id: 'cidade', label: 'Ubatuba & Clima', icon: CloudSun },
     { id: 'vagas', label: 'Vagas', icon: Briefcase },
+    { id: 'quem-somos', label: 'Quem Somos', icon: Users },
   ];
 
   return (

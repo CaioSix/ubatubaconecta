@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Waves, CloudSun, Briefcase, Building2 } from 'lucide-react';
+import { Home, Waves, CloudSun, Briefcase, Building2, Users } from 'lucide-react';
 
 export default function MobileNav({ activeView, onNavigate }) {
   const items = [
@@ -7,7 +7,8 @@ export default function MobileNav({ activeView, onNavigate }) {
     { id: 'praias', label: 'Praias', icon: Waves },
     { id: 'cidade', label: 'Clima', icon: CloudSun },
     { id: 'vagas', label: 'Vagas', icon: Briefcase },
-    { id: 'empresas', label: 'Área do Parceiro', icon: Building2 },
+    { id: 'empresas', label: 'Parceiro', icon: Building2 },
+    { id: 'quem-somos', label: 'Sobre', icon: Users },
   ];
 
   return (

@@ -101,6 +101,9 @@ export default function Footer({ onNavigate }) {
               <button type="button" onClick={() => onNavigate('empresas')}>
                 Área do Parceiro
               </button>
+              <button type="button" onClick={() => onNavigate('quem-somos')}>
+                Quem Somos & Equipe
+              </button>
             </div>
           </section>
 
@@ -135,10 +138,40 @@ export default function Footer({ onNavigate }) {
                   rel="noopener noreferrer"
                   style={{ color: 'var(--lime)', textDecoration: 'none', fontWeight: 700 }}
                 >
-                  ({dev.phone})
+                  {dev.phone}
                 </a>
+                {dev.linkedin && (
+                  <>
+                    {' · '}
+                    <a
+                      href={dev.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--lime)', textDecoration: 'underline', fontWeight: 600 }}
+                    >
+                      LinkedIn
+                    </a>
+                  </>
+                )}
               </React.Fragment>
             ))}
+            {' · '}
+            <button
+              type="button"
+              onClick={() => onNavigate('quem-somos')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fff',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontWeight: 600,
+                padding: 0,
+                fontSize: 'inherit',
+              }}
+            >
+              Conheça nossa equipe
+            </button>
           </p>
         </div>
       </div>
